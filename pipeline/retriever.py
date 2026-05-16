@@ -30,7 +30,7 @@ def retrieve(
     chunk_count: int = 0,
     top_k: int | None = None,
     alpha: float | None = None,
-) -> list[dict]:
+) -> tuple[list[dict], dict]:
     """Retrieve relevant chunks from a project's vector store.
 
     Args:
@@ -41,7 +41,9 @@ def retrieve(
         alpha: override for dense/sparse weighting (1.0=dense, 0.0=sparse)
 
     Returns:
-        list of {"id", "score", "text", "source", "page", "document_id"}
+        Tuple of (results, info) where:
+          - results: list of {"id", "score", "text", "source", "page", "document_id"}
+          - info: {"cache_hit": bool} — whether results came from the semantic cache
     """
     with retrieval_span(
         span_name="retrieval.pipeline",
@@ -53,7 +55,7 @@ def retrieve(
             if span is not None:
                 span.set_attribute("cache.hit", True)
                 span.set_attribute("result_count", len(cached))
-            return cached
+            return cached, {"cache_hit": True}
 
         config = get_retrieval_config(chunk_count)
 
@@ -104,7 +106,7 @@ def retrieve(
             span.set_attribute("result_count", len(results))
 
         logger.info(f"retrieved {len(results)} results")
-        return results
+        return results, {"cache_hit": False}
 
 
 def _rerank(query: str, results: list[dict], final_k: int = 10) -> list[dict]:

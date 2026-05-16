@@ -158,7 +158,7 @@ def _run_retrieval_eval(
 
     for q in queries:
         try:
-            retrieved = retrieve(
+            retrieved, _ = retrieve(
                 project_id=project_id,
                 query=q["query"],
                 chunk_count=chunk_count,

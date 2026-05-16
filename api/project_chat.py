@@ -117,7 +117,7 @@ def project_chat_stream(
             json.dumps({"content": "Searching for relevant passages in your documents..."}),
         )
         try:
-            results = retrieve(
+            results, retrieval_info = retrieve(
                 project_id=project_id,
                 query=user_message,
                 chunk_count=chunk_count,
@@ -127,6 +127,7 @@ def project_chat_stream(
         except Exception as e:
             logger.error(f"retrieval failed: {e}")
             results = []
+            retrieval_info = {"cache_hit": False}
         observe_retrieval_results(agent_name=agent.name, result_count=len(results))
 
         sources = [
@@ -134,7 +135,16 @@ def project_chat_stream(
             for r in results
         ]
         yield _sse("thinking", json.dumps({"content": f"Found {len(results)} relevant passages"}))
-        yield _sse("retrieval", json.dumps({"sources": sources, "count": len(results)}))
+        yield _sse(
+            "retrieval",
+            json.dumps(
+                {
+                    "sources": sources,
+                    "count": len(results),
+                    "cache_hit": bool(retrieval_info.get("cache_hit", False)),
+                }
+            ),
+        )
 
         # 3. Build the context-augmented message (kept ephemeral)
         context_block = build_context_block(results)

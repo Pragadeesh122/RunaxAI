@@ -59,16 +59,19 @@ async def test_project_search_returns_results_without_mutating_chat_state(
     monkeypatch.setattr(
         projects_module,
         "retrieve",
-        lambda **_: [
-            {
-                "id": "chunk-1",
-                "text": "Important searchable project snippet for testing.",
-                "source": "Guide.pdf",
-                "page": 4,
-                "score": 0.88,
-                "document_id": "doc-1",
-            }
-        ],
+        lambda **_: (
+            [
+                {
+                    "id": "chunk-1",
+                    "text": "Important searchable project snippet for testing.",
+                    "source": "Guide.pdf",
+                    "page": 4,
+                    "score": 0.88,
+                    "document_id": "doc-1",
+                }
+            ],
+            {"cache_hit": False},
+        ),
     )
 
     async with session_factory() as session:

@@ -397,7 +397,7 @@ async def search_project_documents(
     chunk_count = int((await db.execute(chunk_count_stmt)).scalar_one() or 0)
 
     try:
-        results = retrieve(
+        results, _ = retrieve(
             project_id=project_id,
             query=query,
             chunk_count=chunk_count,
