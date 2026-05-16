@@ -51,6 +51,32 @@ def _utc_now_naive() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def _loads_json_lenient(raw: str) -> Optional[dict]:
+    """json.loads with one fallback: strip a ```json ... ``` fence if present.
+
+    Defense-in-depth for the rare case where the provider ignores
+    response_format. Returns None on unrecoverable parse failure.
+    """
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+    stripped = raw.strip()
+    if stripped.startswith("```"):
+        # Drop the opening fence (optionally with a language tag) and the
+        # closing fence, then retry.
+        first_newline = stripped.find("\n")
+        if first_newline != -1:
+            body = stripped[first_newline + 1 :]
+            if body.rstrip().endswith("```"):
+                body = body.rstrip()[:-3]
+            try:
+                return json.loads(body)
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
 # ─── Embeddings ───────────────────────────────────────────────────────────
 
 def _embed(text: str) -> list[float]:
@@ -114,17 +140,17 @@ def _extract_candidate_facts(
                 {"role": "system", "content": MEMORY_EXTRACTION},
                 {"role": "user", "content": user_content},
             ],
+            response_format={"type": "json_object"},
         )
 
     raw = extract_first_text(response, "{}")
-    try:
-        parsed = json.loads(raw)
-        facts = parsed.get("facts", [])
-        # Defensive: drop anything that isn't a non-empty string.
-        return [f.strip() for f in facts if isinstance(f, str) and f.strip()]
-    except json.JSONDecodeError:
+    parsed = _loads_json_lenient(raw)
+    if parsed is None:
         logger.error(f"extraction returned non-JSON: {raw[:200]}")
         return []
+    facts = parsed.get("facts", [])
+    # Defensive: drop anything that isn't a non-empty string.
+    return [f.strip() for f in facts if isinstance(f, str) and f.strip()]
 
 
 # ─── Pass 2 — Consolidate (batched) ───────────────────────────────────────
@@ -182,28 +208,28 @@ def _consolidate_batch(
                 {"role": "system", "content": MEMORY_CONSOLIDATION_BATCH},
                 {"role": "user", "content": user_content},
             ],
+            response_format={"type": "json_object"},
         )
 
     raw = extract_first_text(response, "{}")
-    try:
-        parsed = json.loads(raw)
-        decisions = parsed.get("decisions", [])
-        # Index decisions by candidate_index so missing entries default to NONE.
-        by_index: dict[int, dict] = {}
-        for d in decisions:
-            if not isinstance(d, dict):
-                continue
-            idx = d.get("candidate_index")
-            if isinstance(idx, int):
-                by_index[idx] = d
-        return [
-            by_index.get(i, {"candidate_index": i, "action": "NONE"})
-            for i in range(len(candidates))
-        ]
-    except json.JSONDecodeError:
+    parsed = _loads_json_lenient(raw)
+    if parsed is None:
         logger.error(f"consolidation returned non-JSON: {raw[:200]}")
         # Fail-open: treat every candidate as NONE rather than risking bad writes.
         return [{"candidate_index": i, "action": "NONE"} for i in range(len(candidates))]
+    decisions = parsed.get("decisions", [])
+    # Index decisions by candidate_index so missing entries default to NONE.
+    by_index: dict[int, dict] = {}
+    for d in decisions:
+        if not isinstance(d, dict):
+            continue
+        idx = d.get("candidate_index")
+        if isinstance(idx, int):
+            by_index[idx] = d
+    return [
+        by_index.get(i, {"candidate_index": i, "action": "NONE"})
+        for i in range(len(candidates))
+    ]
 
 
 # ─── Persistence ──────────────────────────────────────────────────────────

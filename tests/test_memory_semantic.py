@@ -50,8 +50,8 @@ class _SessionFactory:
 def test_extract_candidate_facts_uses_observation_date_and_summary(monkeypatch):
     captured = {}
 
-    def fake_create(*, messages):
-        captured["messages"] = messages
+    def fake_create(**kwargs):
+        captured["messages"] = kwargs["messages"]
         return {
             "choices": [
                 {
@@ -99,8 +99,83 @@ def test_extract_candidate_facts_uses_observation_date_and_summary(monkeypatch):
     assert "user: I went with FastAPI for AgenticRag." in user_payload
 
 
+def test_extract_passes_response_format_json_object(monkeypatch):
+    """The extractor must request JSON mode so the model doesn't wrap output in
+    markdown fences. Without this, parsing fails silently and we lose every
+    candidate fact from the conversation.
+    """
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return {
+            "choices": [
+                {"message": {"content": json.dumps({"facts": []})}}
+            ]
+        }
+
+    monkeypatch.setattr(
+        semantic,
+        "llm_client",
+        SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=fake_create)
+            )
+        ),
+    )
+
+    semantic._extract_candidate_facts(
+        messages=[{"role": "user", "content": "I use FastAPI."}],
+        rolling_summary=None,
+        observation_date=datetime(2026, 4, 15),
+    )
+
+    assert captured.get("response_format") == {"type": "json_object"}, (
+        "extractor LLM call is missing response_format={'type':'json_object'} "
+        "— without it the model often returns markdown-fenced JSON which "
+        "json.loads cannot parse, and _extract_candidate_facts returns []."
+    )
+
+
+def test_extract_handles_markdown_fenced_json(monkeypatch):
+    """Simulates the real-world failure mode: model returns its JSON wrapped in
+    ```json ... ``` fences (which is what happens when response_format isn't
+    set). The extractor must still recover the facts — today it returns [].
+    """
+    fenced_payload = (
+        "```json\n"
+        + json.dumps({"facts": ["Builds AgenticRag with FastAPI"]})
+        + "\n```"
+    )
+
+    def fake_create(**kwargs):
+        return {"choices": [{"message": {"content": fenced_payload}}]}
+
+    monkeypatch.setattr(
+        semantic,
+        "llm_client",
+        SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=fake_create)
+            )
+        ),
+    )
+
+    facts = semantic._extract_candidate_facts(
+        messages=[{"role": "user", "content": "I built AgenticRag with FastAPI."}],
+        rolling_summary=None,
+        observation_date=datetime(2026, 4, 15),
+    )
+
+    assert facts == ["Builds AgenticRag with FastAPI"], (
+        "Extractor swallowed a markdown-fenced JSON response and dropped "
+        "every candidate fact. This is the root cause of empty memory in UI."
+    )
+
+
 def test_consolidate_batch_defaults_missing_decisions_to_none(monkeypatch):
-    def fake_create(*, messages):
+    def fake_create(**kwargs):
+        messages = kwargs["messages"]
         assert "candidate_index=0" in messages[1]["content"]
         return {
             "choices": [
