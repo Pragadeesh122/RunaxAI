@@ -172,7 +172,7 @@ export type SSEEvent =
   | {type: "tool"; data: {name: string; args?: Record<string, unknown>}}
   | {type: "thinking"; data: {content: string}}
   | {type: "agent"; data: {name: string; description: string}}
-  | {type: "retrieval"; data: {sources: RetrievalSource[]; count: number}}
+  | {type: "retrieval"; data: {sources: RetrievalSource[]; count: number; cache_hit?: boolean}}
   | {type: "error"; data: string}
   | {
       type: "done";

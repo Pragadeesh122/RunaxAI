@@ -621,9 +621,12 @@ export default function ProjectPage({
               )
             );
           } else if (event.type === "retrieval") {
+            const cacheHit = event.data.cache_hit === true;
             const retrievalTool: ToolCall = {
               id: generateLocalId(),
-              name: `searched ${event.data.count} passages`,
+              name: cacheHit
+                ? `searched ${event.data.count} passages (cached)`
+                : `searched ${event.data.count} passages`,
               status: "done",
             };
             finalSources = event.data.sources;
@@ -667,6 +670,7 @@ export default function ProjectPage({
                         toolCall: retrievalTool,
                       }),
                       sources: event.data.sources,
+                      sourcesCached: cacheHit,
                     }
                   : m
               )

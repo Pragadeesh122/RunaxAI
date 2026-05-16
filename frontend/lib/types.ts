@@ -73,6 +73,7 @@ export interface Message {
   toolCalls: ToolCall[];
   thinkingEntries: ThinkingEntry[];
   sources: RetrievalSource[];
+  sourcesCached?: boolean;
   status?: AssistantMessageStatus;
   thinkingStartedAt?: number;
   thinkingDuration?: number;

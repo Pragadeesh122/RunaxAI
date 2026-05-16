@@ -335,6 +335,15 @@ export default function MessageBubble({
               <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[10px] text-zinc-500">
                 {sourceItems.length}
               </span>
+              {message.sourcesCached ? (
+                <span
+                  title="Retrieved from semantic cache"
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300"
+                >
+                  <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                  cached
+                </span>
+              ) : null}
             </div>
             {sourcesOpen ? (
               <CaretUp size={14} className="text-zinc-500" />
