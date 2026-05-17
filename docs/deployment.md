@@ -110,6 +110,18 @@ Because the backend builds the Google OAuth redirect URI from `FRONTEND_URL`, th
 https://runaxai.com/api/auth/callback/google
 ```
 
+## Syncing Helm Secrets to the Cluster
+
+The CI deploy (`.github/workflows/deploy.yml`) does not read `helm/values-secrets.yaml` from the repo — that file is gitignored. Instead it reads a Kubernetes secret named `helm-values-secrets` in the `arc-runners` namespace, which is a *snapshot* of the local file taken at the moment it was last applied with `kubectl create secret`.
+
+If you edit `helm/values-secrets.yaml` locally and forget to re-apply the cluster secret, the next deploy will keep using the old values. Run:
+
+```bash
+./scripts/sync-helm-secrets.sh
+```
+
+This shows a diff between the local file and the cluster secret, asks for confirmation, then applies. Use `--check` for a dry run or `--yes` to skip the prompt.
+
 ## Adding a New Subdomain (e.g. blog.runaxai.com)
 
 The Cloudflare tunnel uses a `TUNNEL_TOKEN` (see `helm/agenticrag/templates/tunnel/deployment.yaml`), so public hostnames are configured in the Cloudflare Zero Trust dashboard rather than in the chart. Adding a subdomain takes three coordinated changes:
