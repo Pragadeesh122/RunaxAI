@@ -37,6 +37,14 @@ from prompts.memory import (
 
 logger = logging.getLogger("memory")
 
+
+class MemoryExtractionError(Exception):
+    """Raised when memory extraction fails in a way that should NOT advance the
+    per-session cursor — i.e., a hard parse failure rather than a legitimate
+    "no facts to extract" outcome. The ARQ task catches this and surfaces an
+    explicit failure status so the same messages can be retried next call.
+    """
+
 # ``text-embedding-3-small`` matches the tool cache (memory/cache.py) — keeping
 # both on the same model lets them share infrastructure later if needed and
 # keeps cost per embedding low.
@@ -147,7 +155,9 @@ def _extract_candidate_facts(
     parsed = _loads_json_lenient(raw)
     if parsed is None:
         logger.error(f"extraction returned non-JSON: {raw[:200]}")
-        return []
+        raise MemoryExtractionError(
+            f"extraction returned non-JSON: {raw[:200]}"
+        )
     facts = parsed.get("facts", [])
     # Defensive: drop anything that isn't a non-empty string.
     return [f.strip() for f in facts if isinstance(f, str) and f.strip()]
@@ -215,8 +225,9 @@ def _consolidate_batch(
     parsed = _loads_json_lenient(raw)
     if parsed is None:
         logger.error(f"consolidation returned non-JSON: {raw[:200]}")
-        # Fail-open: treat every candidate as NONE rather than risking bad writes.
-        return [{"candidate_index": i, "action": "NONE"} for i in range(len(candidates))]
+        raise MemoryExtractionError(
+            f"consolidation returned non-JSON: {raw[:200]}"
+        )
     decisions = parsed.get("decisions", [])
     # Index decisions by candidate_index so missing entries default to NONE.
     by_index: dict[int, dict] = {}

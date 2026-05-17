@@ -27,7 +27,11 @@ import logging
 from typing import Optional
 
 from memory.redis_client import redis_client
-from memory.semantic import extract_and_persist_memories, refresh_rolling_summary
+from memory.semantic import (
+    MemoryExtractionError,
+    extract_and_persist_memories,
+    refresh_rolling_summary,
+)
 
 logger = logging.getLogger("worker.memory")
 
@@ -101,13 +105,19 @@ async def persist_memories_task(
 
         rolling_summary = redis_client.get(_summary_key(sid))
 
-        counts = await asyncio.to_thread(
-            extract_and_persist_memories,
-            new_messages,
-            user_id,
-            session_id,
-            rolling_summary,
-        )
+        try:
+            counts = await asyncio.to_thread(
+                extract_and_persist_memories,
+                new_messages,
+                user_id,
+                session_id,
+                rolling_summary,
+            )
+        except MemoryExtractionError as exc:
+            # Hard parse failure — do NOT advance the cursor, otherwise the
+            # failed messages are permanently skipped on the next call.
+            logger.warning("memory extraction failed for session %s: %s", sid, exc)
+            return {"status": "extraction_failed", "error": str(exc)}
 
         # Advance cursor to the hash of the last processed message.
         last_hash = _message_hash(messages[-1])

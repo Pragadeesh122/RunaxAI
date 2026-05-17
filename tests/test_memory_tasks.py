@@ -1,5 +1,6 @@
 import pytest
 
+from memory.semantic import MemoryExtractionError
 from tasks import memory_tasks
 
 
@@ -162,6 +163,69 @@ async def test_lock_prevents_concurrent_execution(monkeypatch):
         {}, "u-4", [{"role": "user", "content": "hi"}], session_id="s-d"
     )
     assert result["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_cursor_does_not_advance_on_extraction_failure(monkeypatch):
+    """Hard parse failures inside extraction must NOT advance the cursor —
+    otherwise the same conversation can never be retried and its facts are
+    lost forever. The task should surface an explicit failure status and the
+    lock must be released so subsequent attempts can run.
+    """
+    fake_redis = _FakeRedis()
+
+    def _raise(messages, user_id, session_id, rolling_summary):
+        raise MemoryExtractionError("simulated parse failure")
+
+    _install_fakes(monkeypatch, fake_redis, _raise)
+
+    messages = [{"role": "user", "content": "I built it with FastAPI."}]
+    result = await memory_tasks.persist_memories_task(
+        {}, "u-fail", messages, session_id="s-fail"
+    )
+
+    assert result["status"] == "extraction_failed"
+    assert fake_redis.get(memory_tasks._cursor_key("s-fail")) is None, (
+        "cursor was advanced despite an extraction failure — the failed "
+        "messages will never be retried"
+    )
+    assert fake_redis.get(memory_tasks._lock_key("s-fail")) is None, (
+        "lock was not released after failure"
+    )
+
+
+@pytest.mark.asyncio
+async def test_failed_extraction_is_retried_on_next_invocation(monkeypatch):
+    """After a failure, the next invocation must reprocess the same messages
+    end-to-end rather than skipping them as already-processed.
+    """
+    fake_redis = _FakeRedis()
+    received: list[list[dict]] = []
+
+    def _raise(messages, user_id, session_id, rolling_summary):
+        raise MemoryExtractionError("simulated parse failure")
+
+    _install_fakes(monkeypatch, fake_redis, _raise)
+
+    messages = [{"role": "user", "content": "I prefer Postgres over MySQL."}]
+    await memory_tasks.persist_memories_task(
+        {}, "u-retry", messages, session_id="s-retry"
+    )
+
+    # Now swap in a successful extractor and call again.
+    _install_fakes(
+        monkeypatch,
+        fake_redis,
+        lambda messages, user_id, session_id, rolling_summary: received.append(messages) or {},
+    )
+    result = await memory_tasks.persist_memories_task(
+        {}, "u-retry", messages, session_id="s-retry"
+    )
+
+    assert result["status"] == "ok"
+    assert received == [messages], (
+        "second attempt did not reprocess the messages after a failed first run"
+    )
 
 
 @pytest.mark.asyncio

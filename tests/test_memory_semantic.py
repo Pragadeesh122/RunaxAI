@@ -3,6 +3,8 @@ import uuid
 from datetime import datetime
 from types import SimpleNamespace
 
+import pytest
+
 from memory import semantic
 from scripts import backfill_memory_from_redis as backfill
 
@@ -171,6 +173,57 @@ def test_extract_handles_markdown_fenced_json(monkeypatch):
         "Extractor swallowed a markdown-fenced JSON response and dropped "
         "every candidate fact. This is the root cause of empty memory in UI."
     )
+
+
+def test_extract_raises_on_unrecoverable_parse_failure(monkeypatch):
+    """If the model returns content that survives neither json.loads nor the
+    fenced-fallback, the extractor must raise — NOT return [] — so that the
+    ARQ task can refuse to advance its cursor and the messages get retried.
+    """
+    def fake_create(**kwargs):
+        return {"choices": [{"message": {"content": "not json at all, sorry"}}]}
+
+    monkeypatch.setattr(
+        semantic,
+        "llm_client",
+        SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=fake_create)
+            )
+        ),
+    )
+
+    with pytest.raises(semantic.MemoryExtractionError):
+        semantic._extract_candidate_facts(
+            messages=[{"role": "user", "content": "I built it with FastAPI."}],
+            rolling_summary=None,
+            observation_date=datetime(2026, 4, 15),
+        )
+
+
+def test_consolidate_raises_on_unrecoverable_parse_failure(monkeypatch):
+    """Same protection for the consolidation pass — silently returning all-NONE
+    on a parse failure means the writes never happen and the cursor advances
+    anyway.
+    """
+    def fake_create(**kwargs):
+        return {"choices": [{"message": {"content": "definitely not json"}}]}
+
+    monkeypatch.setattr(
+        semantic,
+        "llm_client",
+        SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=fake_create)
+            )
+        ),
+    )
+
+    with pytest.raises(semantic.MemoryExtractionError):
+        semantic._consolidate_batch(
+            ["Works at Acme"],
+            {0: []},
+        )
 
 
 def test_consolidate_batch_defaults_missing_decisions_to_none(monkeypatch):
