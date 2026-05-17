@@ -70,4 +70,4 @@ Every single call passes through an instrumentation wrapper that tracks:
 - **Tokens/Second throughput**
 - **Cost Estimation** (usd/token)
 
-Because of this abstraction, the orchestrator can confidently route a complex reasoning task to a high-capability model like `claude-3-5-sonnet`, pass the background memory extraction to the project default `gpt-5.4-mini`, and generate embeddings with `text-embedding-3-small`—all while maintaining perfectly unified tracing and telemetry.
+Because of this abstraction, the orchestrator can confidently route a complex reasoning task to a high-capability provider like `Claude`, pass the background memory extraction to a faster model like `GPT-4o-mini`, and generate embeddings with `text-embedding-3-small`—all while maintaining perfectly unified tracing and telemetry.
