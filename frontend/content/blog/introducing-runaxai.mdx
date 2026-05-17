@@ -17,6 +17,36 @@ they sit alongside a tool planner, a router, four specialised agents, and an
 adaptive retrieval pipeline that changes shape depending on how much you've
 uploaded.
 
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant F as FastAPI
+    participant R as Redis
+    participant PG as PostgreSQL
+    participant L as LLM
+    participant T as Tool
+
+    B->>F: POST /chat/stream (SSE)
+    F->>R: Get session messages
+    R-->>F: Message history
+    F->>L: Chat completion (with tools)
+    L-->>F: Streaming tokens + tool calls
+    F-->>B: SSE: token events
+
+    alt Tool calls requested
+        F->>T: Execute tool(s)
+        T-->>F: Results
+        F->>L: Chat completion (with tool results)
+        L-->>F: Streaming tokens
+        F-->>B: SSE: token + thinking events
+    end
+
+    F->>R: Save updated messages
+    F-->>B: SSE: done event
+    B->>F: POST /chat/sessions/{id}/messages
+    F->>PG: Save to PostgreSQL (SQLAlchemy)
+```
+
 This post is a tour of what's actually in the box.
 
 ## Two chat modes, deliberately

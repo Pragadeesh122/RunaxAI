@@ -10,6 +10,15 @@ Building a robust Retrieval-Augmented Generation (RAG) system is rarely as simpl
 
 In RunaxAI, we built an **Adaptive Retrieval Pipeline** that fundamentally shifts its strategy based on the characteristics and size of the user's corpus. Here is a deep dive into the ingestion and retrieval architecture.
 
+```mermaid
+flowchart LR
+    A[User message] --> B[Route to agent]
+    B --> C[Retrieve from Pinecone]
+    C --> D[Build context block]
+    D --> E[LLM with augmented prompt]
+    E --> F[Stream response]
+```
+
 ## 1. Intelligent Chunking
 
 Before embedding, documents are downloaded from MinIO, and text is extracted and cleaned to remove artifacts like repeated headers/footers. We don't use a one-size-fits-all chunking method. Instead, `pipeline/chunker.py` auto-selects a strategy:

@@ -10,6 +10,32 @@ In a production-grade agentic chat application, PostgreSQL is great for durable,
 
 In RunaxAI, **Redis** acts as the high-speed backbone for the entire application. We multiplex a single Redis instance across several distinct roles by leveraging specific key patterns and Time-To-Live (TTL) strategies.
 
+```mermaid
+graph LR
+    Browser -->|page requests| NextJS["Next.js :3000<br/>SSR + Client UI"]
+    Browser -->|interactive HTTP / SSE| FastAPI["FastAPI :8000<br/>Python Backend"]
+    NextJS -->|SSR data fetch| FastAPI
+
+    FastAPI --- DB[("PostgreSQL<br/>users, sessions,<br/>messages, projects")]
+    FastAPI --- Redis[("Redis<br/>sessions, cache,<br/>memory, jobs")]
+    FastAPI --- Pinecone[("Pinecone<br/>vectors")]
+    FastAPI --- MinIO[("MinIO<br/>file storage")]
+    FastAPI --- LLM["LLM Providers<br/>OpenAI, Anthropic,<br/>Gemini, Grok, Ollama"]
+
+    subgraph Monitoring
+        Prometheus
+        Loki
+        Tempo
+        Grafana
+    end
+
+    FastAPI -->|metrics| Prometheus
+    FastAPI -->|OTLP| Tempo
+    Grafana --- Prometheus
+    Grafana --- Loki
+    Grafana --- Tempo
+```
+
 ## 1. Active Session Management
 
 When a user is actively chatting, the frontend streams SSE (Server-Sent Events) from the FastAPI backend. The entire history of that active session needs to be injected into the LLM context on every turn.

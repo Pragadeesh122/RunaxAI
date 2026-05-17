@@ -10,6 +10,22 @@ Giving an LLM access to external tools is easy. Making sure it doesn't bankrupt 
 
 In RunaxAI, the `orchestrator` acts as the primary driver for General Chat. It operates on a recursive reasoning loop: the LLM observes the conversation, proposes tool calls, the system executes them, appends the results, and the LLM observes the new state. 
 
+```mermaid
+flowchart TD
+    A[User message] --> B[LLM call with tool definitions]
+    B --> C{Tool calls in response?}
+    C -->|No| D[Stream text to user]
+    C -->|Yes| E{Budget remaining?}
+    E -->|No| F[Force final answer]
+    E -->|Yes| G[Plan tool execution]
+    G --> H{Duplicates suppressed?}
+    H -->|All suppressed| F
+    H -->|Some pass| I[Execute tools]
+    I --> J[Append results to messages]
+    J --> B
+    F --> D
+```
+
 To make this production-ready, we built a strict **Tool Planner** (`utils/tool_planner.py`) and implemented rigorous budget constraints. Here is how we tame the loop.
 
 ## 1. Budget Constraints
