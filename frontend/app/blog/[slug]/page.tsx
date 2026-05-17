@@ -79,16 +79,16 @@ export default async function BlogPostPage({
   if (!post) notFound();
 
   return (
-    <article className="mx-auto max-w-3xl px-6 pt-16 pb-24">
+    <article className="mx-auto max-w-6xl px-10 pt-16 pb-24">
       <Link
         href="/blog"
-        className="mb-10 inline-flex items-center gap-1.5 text-[12px] text-zinc-500 transition-colors hover:text-zinc-300"
+        className="mb-12 inline-flex items-center gap-1.5 text-[13px] text-zinc-500 transition-colors hover:text-zinc-300"
       >
         ← All posts
       </Link>
 
-      <header className="mb-10">
-        <div className="mb-4 flex items-center gap-3 text-[12px] text-zinc-500">
+      <header className="mb-14">
+        <div className="mb-5 flex items-center gap-3 text-[13px] text-zinc-500">
           <time dateTime={post.date} className="tabular-nums">
             {formatDate(post.date)}
           </time>
@@ -96,18 +96,18 @@ export default async function BlogPostPage({
           <span>{post.readingMinutes} min read</span>
         </div>
         <h1
-          className="text-[40px] leading-[1.1] tracking-tight text-zinc-50"
+          className="text-6xl leading-[1.05] tracking-tighter text-zinc-50"
           style={{ fontFamily: "var(--font-serif)" }}
         >
           {post.title}
         </h1>
-        <p className="mt-4 text-[16px] leading-relaxed text-zinc-400">
+        <p className="mt-6 max-w-3xl text-[18px] leading-relaxed text-zinc-400">
           {post.description}
         </p>
-        <p className="mt-6 text-[13px] text-zinc-500">By {post.author}</p>
+        <p className="mt-8 text-[14px] text-zinc-500">By {post.author}</p>
       </header>
 
-      <div className="blog-prose">
+      <div className="blog-prose max-w-4xl">
         <MDXRemote
           source={post.content}
           components={mdxComponents}
