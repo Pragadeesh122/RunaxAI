@@ -48,7 +48,7 @@ _NOISY_LOGGERS = (
 # Endpoints hit by automated scrapers (Prometheus, k8s health probes). Each
 # scrape produces one uvicorn.access INFO line, which floods the log every
 # few seconds. Override via SILENT_ACCESS_PATHS="/metrics,/health,/foo".
-_DEFAULT_SILENT_ACCESS_PATHS = ("/metrics", "/health")
+_DEFAULT_SILENT_ACCESS_PATHS = ("/metrics", "/health", "/ready")
 
 
 class _DropAccessPaths(logging.Filter):
