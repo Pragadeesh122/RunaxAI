@@ -223,11 +223,25 @@ export default function LandingPage() {
               { label: "Platform", href: "#platform-heading" },
               { label: "Workflows", href: "#workflow-heading" },
               { label: "Production", href: "#production-heading" },
-            ].map(({ label, href }) => (
-              <a key={label} href={href} className="rounded-lg px-3 py-1.5 text-[13px]" style={{ color: textMute }}>
-                {label}
-              </a>
-            ))}
+              { label: "Blog", href: "/blog" },
+            ].map(({ label, href }) => {
+              const isExternal = href.startsWith("http");
+              const isInternal = href.startsWith("/");
+              
+              if (isInternal) {
+                return (
+                  <Link key={label} href={href} className="rounded-lg px-3 py-1.5 text-[13px]" style={{ color: textMute }}>
+                    {label}
+                  </Link>
+                );
+              }
+              
+              return (
+                <a key={label} href={href} className="rounded-lg px-3 py-1.5 text-[13px]" style={{ color: textMute }}>
+                  {label}
+                </a>
+              );
+            })}
             <a href="https://github.com/Pragadeesh122/AgenticRag" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px]" style={{ color: textMute }}>
               GitHub
               <ArrowUpRight size={11} weight="bold" aria-hidden="true" />
