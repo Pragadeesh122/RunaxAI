@@ -123,6 +123,7 @@ def project_chat_stream(
                 chunk_count=chunk_count,
                 top_k=agent.top_k_override,
                 alpha=agent.alpha_override,
+                use_hyde=agent.use_hyde,
             )
         except Exception as e:
             logger.error(f"retrieval failed: {e}")

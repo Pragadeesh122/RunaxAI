@@ -15,6 +15,11 @@ class Agent:
     top_k_override: int | None = None
     alpha_override: float | None = None
 
+    # Run a HyDE pass before embedding the query. Useful for agents that
+    # take short, vague user prompts (e.g. reasoning) and less useful for
+    # agents whose input is already concrete (e.g. summary of "this doc").
+    use_hyde: bool = False
+
     # Whether output should be parsed as structured JSON
     structured_output: bool = False
 
