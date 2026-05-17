@@ -11,29 +11,33 @@ In a production-grade agentic chat application, PostgreSQL is great for durable,
 In RunaxAI, **Redis** acts as the high-speed backbone for the entire application. We multiplex a single Redis instance across several distinct roles by leveraging specific key patterns and Time-To-Live (TTL) strategies.
 
 ```mermaid
-graph LR
-    Browser -->|page requests| NextJS["Next.js :3000<br/>SSR + Client UI"]
-    Browser -->|interactive HTTP / SSE| FastAPI["FastAPI :8000<br/>Python Backend"]
-    NextJS -->|SSR data fetch| FastAPI
-
-    FastAPI --- DB[("PostgreSQL<br/>users, sessions,<br/>messages, projects")]
-    FastAPI --- Redis[("Redis<br/>sessions, cache,<br/>memory, jobs")]
-    FastAPI --- Pinecone[("Pinecone<br/>vectors")]
-    FastAPI --- MinIO[("MinIO<br/>file storage")]
-    FastAPI --- LLM["LLM Providers<br/>OpenAI, Anthropic,<br/>Gemini, Grok, Ollama"]
-
-    subgraph Monitoring
-        Prometheus
-        Loki
-        Tempo
-        Grafana
+flowchart TD
+    subgraph App["FastAPI Backend"]
+        API["Active Chat Stream"]
+        Router["Tool Router"]
     end
 
-    FastAPI -->|metrics| Prometheus
-    FastAPI -->|OTLP| Tempo
-    Grafana --- Prometheus
-    Grafana --- Loki
-    Grafana --- Tempo
+    subgraph RedisStore["Redis Backbone"]
+        direction TB
+        Sessions[("Sessions<br/>(24h TTL)")]
+        Cache[("Semantic Cache<br/>(RediSearch)")]
+        Locks[("Locks & Cursors<br/>(Memory state)")]
+        Queue[("Job Queue<br/>(ARQ)")]
+    end
+
+    subgraph Workers["Background Workers"]
+        ARQ["ARQ Worker<br/>(Memory extraction)"]
+        Audit["Cache Audit Thread"]
+    end
+
+    API -->|Read/Write<br/>message history| Sessions
+    Router -->|Check cache hit| Cache
+    API -->|Acquire locks / Update cursors| Locks
+    API -->|Enqueue memory tasks| Queue
+
+    Queue -->|Process tasks| ARQ
+    Cache -.->|5% sample audit| Audit
+    ARQ -->|Read cursors| Locks
 ```
 
 ## 1. Active Session Management
