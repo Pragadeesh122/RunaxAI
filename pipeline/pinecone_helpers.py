@@ -9,27 +9,29 @@ from observability.spans import retrieval_span
 logger = logging.getLogger("pipeline.pinecone")
 
 INDEX_NAME = "agenticrag"
-DENSE_DIMENSION = int(os.getenv("DENSE_EMBEDDING_DIMENSION", 3072))
+DENSE_DIMENSION = int(os.getenv("DENSE_EMBEDDING_DIMENSION", 1536))
 DENSE_METRIC = "dotproduct"  # required for hybrid search
 
 
 def ensure_index() -> None:
-    """Create the Pinecone index if it doesn't exist."""
+    """Create the Pinecone index if it doesn't exist.
+
+    Hard-fails if an existing index has a different dimension than the
+    configured one — otherwise upserts would silently corrupt the namespace.
+    """
     existing_indexes = list(pinecone_client.list_indexes())
     existing_names = [idx.name for idx in existing_indexes]
     if INDEX_NAME in existing_names:
-        try:
-            idx = next(i for i in existing_indexes if i.name == INDEX_NAME)
-            current_dim = int(getattr(idx, "dimension"))
-            if current_dim != DENSE_DIMENSION:
-                logger.warning(
-                    f"index '{INDEX_NAME}' dimension mismatch: existing={current_dim}, "
-                    f"configured={DENSE_DIMENSION}. Recreate the index or set "
-                    "DENSE_EMBEDDING_DIMENSION to match."
-                )
-        except Exception:
-            pass
-        logger.info(f"index '{INDEX_NAME}' already exists")
+        idx = next(i for i in existing_indexes if i.name == INDEX_NAME)
+        current_dim = int(getattr(idx, "dimension"))
+        if current_dim != DENSE_DIMENSION:
+            raise ValueError(
+                f"Pinecone index '{INDEX_NAME}' has dimension {current_dim} but "
+                f"DENSE_EMBEDDING_DIMENSION is configured as {DENSE_DIMENSION}. "
+                "Either set DENSE_EMBEDDING_DIMENSION to match the existing "
+                "index, or delete the index and reingest all documents."
+            )
+        logger.info(f"index '{INDEX_NAME}' already exists (dim={current_dim})")
         return
 
     pinecone_client.create_index(

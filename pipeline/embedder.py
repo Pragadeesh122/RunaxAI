@@ -8,15 +8,29 @@ from llm.response_utils import extract_embedding_vectors
 logger = logging.getLogger("pipeline.embedder")
 
 DENSE_MODEL = os.getenv("DENSE_EMBEDDING_MODEL", "text-embedding-3-large")
-DENSE_DIMENSION = int(os.getenv("DENSE_EMBEDDING_DIMENSION", 3072))
+# 1536d is the matryoshka-reduced dim for text-embedding-3-large — within
+# ~1-2% of full 3072d on MTEB retrieval, at half the storage/QPS cost.
+DENSE_DIMENSION = int(os.getenv("DENSE_EMBEDDING_DIMENSION", 1536))
 SPARSE_MODEL = "pinecone-sparse-english-v0"
 
 # Max texts per API call (Pinecone sparse limit is 96)
 EMBEDDING_BATCH_SIZE = 96
 
 
+def _supports_dimensions(model: str) -> bool:
+    """Only text-embedding-3-* accepts the `dimensions` parameter."""
+    return model.startswith("text-embedding-3")
+
+
+def _dense_create(inputs):
+    kwargs = {"input": inputs, "model": DENSE_MODEL}
+    if _supports_dimensions(DENSE_MODEL):
+        kwargs["dimensions"] = DENSE_DIMENSION
+    return llm_client.embeddings.create(**kwargs)
+
+
 def embed_dense(texts: list[str]) -> list[list[float]]:
-    """Generate dense embeddings via OpenAI text-embedding-3-large.
+    """Generate dense embeddings via the configured OpenAI model.
 
     Handles batching for large lists.
     """
@@ -24,7 +38,7 @@ def embed_dense(texts: list[str]) -> list[list[float]]:
 
     for i in range(0, len(texts), EMBEDDING_BATCH_SIZE):
         batch = texts[i : i + EMBEDDING_BATCH_SIZE]
-        response = llm_client.embeddings.create(input=batch, model=DENSE_MODEL)
+        response = _dense_create(batch)
         batch_embeddings = extract_embedding_vectors(response)
         all_embeddings.extend(batch_embeddings)
         logger.info(
@@ -64,7 +78,7 @@ def embed_sparse(texts: list[str]) -> list[dict]:
 
 def embed_query_dense(query: str) -> list[float]:
     """Embed a single query string with the dense model."""
-    response = llm_client.embeddings.create(input=query, model=DENSE_MODEL)
+    response = _dense_create(query)
     return extract_embedding_vectors(response)[0]
 
 
