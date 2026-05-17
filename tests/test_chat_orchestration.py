@@ -47,11 +47,14 @@ def test_chat_stream_executes_only_first_tool_in_sequential_mode(monkeypatch):
 
     def fake_execute_tool_call(proxy):
         executed.append(proxy.function.name)
-        return {
-            "role": "tool",
-            "tool_call_id": proxy.id,
-            "content": json.dumps({"content": f"result for {proxy.function.name}"}),
-        }
+        return (
+            {
+                "role": "tool",
+                "tool_call_id": proxy.id,
+                "content": json.dumps({"content": f"result for {proxy.function.name}"}),
+            },
+            {"cache_hit": False},
+        )
 
     monkeypatch.setattr(chat_module, "iter_response", fake_iter_response)
     monkeypatch.setattr(chat_module, "execute_tool_call", fake_execute_tool_call)
@@ -63,7 +66,7 @@ def test_chat_stream_executes_only_first_tool_in_sequential_mode(monkeypatch):
     events = list(chat_module.chat_stream("session-1", "check example"))
 
     assert executed == ["crawl_website"]
-    assert sum(1 for event in events if event.startswith("event: tool")) == 1
+    assert sum(1 for event in events if event.startswith("event: tool\n")) == 1
     assert '"name": "crawl_website"' in "".join(events)
     assert '"name": "search"' not in "".join(events)
     assert saved["messages"][1]["tool_calls"][0]["function"]["name"] == "crawl_website"
@@ -91,11 +94,14 @@ def test_chat_stream_parallel_search_keeps_tool_results_in_request_order(monkeyp
     def fake_execute_tool_call(proxy):
         if proxy.function.arguments == json.dumps({"query": "slow"}):
             time.sleep(0.02)
-        return {
-            "role": "tool",
-            "tool_call_id": proxy.id,
-            "content": json.dumps({"result": proxy.function.arguments}),
-        }
+        return (
+            {
+                "role": "tool",
+                "tool_call_id": proxy.id,
+                "content": json.dumps({"result": proxy.function.arguments}),
+            },
+            {"cache_hit": False},
+        )
 
     monkeypatch.setattr(chat_module, "iter_response", fake_iter_response)
     monkeypatch.setattr(chat_module, "execute_tool_call", fake_execute_tool_call)
@@ -129,11 +135,14 @@ def test_chat_stream_forces_final_answer_when_reasoning_budget_is_exhausted(monk
 
     def fake_execute_tool_call(proxy):
         executed.append(proxy.function.name)
-        return {
-            "role": "tool",
-            "tool_call_id": proxy.id,
-            "content": json.dumps({"result": proxy.function.arguments}),
-        }
+        return (
+            {
+                "role": "tool",
+                "tool_call_id": proxy.id,
+                "content": json.dumps({"result": proxy.function.arguments}),
+            },
+            {"cache_hit": False},
+        )
 
     monkeypatch.setattr(chat_module, "iter_response", fake_iter_response)
     monkeypatch.setattr(chat_module, "execute_tool_call", fake_execute_tool_call)

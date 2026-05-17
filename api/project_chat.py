@@ -227,7 +227,10 @@ def project_chat_stream(
                         "thinking",
                         json.dumps({"content": _format_tool_thinking(name, args)}),
                     )
-                    yield _sse("tool", json.dumps({"name": name, "args": args}))
+                    yield _sse(
+                        "tool",
+                        json.dumps({"id": tc["id"], "name": name, "args": args}),
+                    )
                     tools_used.append(name)
 
                 inference_messages.append(
@@ -240,8 +243,18 @@ def project_chat_stream(
 
                 for tc in tool_calls:
                     proxy = ToolCallProxy(tc)
-                    result = execute_tool_call(proxy)
+                    result, tool_info = execute_tool_call(proxy)
                     inference_messages.append(result)
+                    yield _sse(
+                        "tool_result",
+                        json.dumps(
+                            {
+                                "id": tc["id"],
+                                "name": tc["function"]["name"],
+                                "cache_hit": bool(tool_info.get("cache_hit", False)),
+                            }
+                        ),
+                    )
                     yield _sse(
                         "thinking",
                         json.dumps(

@@ -9,7 +9,14 @@ from observability.spans import tool_span
 logger = logging.getLogger("tool-router")
 
 
-def execute_tool_call(tool_call) -> dict:
+def execute_tool_call(tool_call) -> tuple[dict, dict]:
+    """Execute a tool call.
+
+    Returns:
+        Tuple of (message, info) where:
+          - message: standard tool result dict for the LLM message history
+          - info: {"cache_hit": bool} — whether result came from the tool cache
+    """
     name = tool_call.function.name
     started = time.perf_counter()
     with tool_span(tool_name=name or "unknown") as span:
@@ -24,11 +31,14 @@ def execute_tool_call(tool_call) -> dict:
             )
             if span is not None:
                 span.set_attribute("status", "error")
-            return {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": json.dumps({"error": f"Invalid arguments: {e}"}),
-            }
+            return (
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps({"error": f"Invalid arguments: {e}"}),
+                },
+                {"cache_hit": False},
+            )
 
         if name not in available_functions:
             logger.error(f"unknown tool: {name}")
@@ -39,11 +49,14 @@ def execute_tool_call(tool_call) -> dict:
             )
             if span is not None:
                 span.set_attribute("status", "error")
-            return {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": json.dumps({"error": f"Unknown tool: {name}"}),
-            }
+            return (
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps({"error": f"Unknown tool: {name}"}),
+                },
+                {"cache_hit": False},
+            )
 
         # Check cache for similar queries (the cache module logs HIT/MISS itself)
         query_str = args.get("query", "")
@@ -60,11 +73,14 @@ def execute_tool_call(tool_call) -> dict:
                     span.set_attribute("tool.cache_status", "hit")
                     span.set_attribute("status", "success")
                 logger.info(f"tool {name} -> served from cache")
-                return {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": cached,
-                }
+                return (
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": cached,
+                    },
+                    {"cache_hit": True},
+                )
             observe_tool_cache(tool_name=name, cache_status="miss")
             if span is not None:
                 span.set_attribute("tool.cache_status", "miss")
@@ -90,11 +106,14 @@ def execute_tool_call(tool_call) -> dict:
             if span is not None:
                 span.set_attribute("status", "success")
 
-            return {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": result_str,
-            }
+            return (
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": result_str,
+                },
+                {"cache_hit": False},
+            )
         except Exception as e:
             logger.error(f"tool {name} failed: {e}")
             observe_tool_outcome(
@@ -104,8 +123,11 @@ def execute_tool_call(tool_call) -> dict:
             )
             if span is not None:
                 span.set_attribute("status", "error")
-            return {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": json.dumps({"error": f"Tool execution failed: {e}"}),
-            }
+            return (
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps({"error": f"Tool execution failed: {e}"}),
+                },
+                {"cache_hit": False},
+            )

@@ -85,7 +85,7 @@ def main():
                     order = {p.id: i for i, p in enumerate(proxies)}
                     results.sort(key=lambda r: order[r[0].id])
                     for _, result in results:
-                        messages.append(result)
+                        messages.append(result[0])
         except KeyboardInterrupt:
             print("\nInterrupted.")
             break

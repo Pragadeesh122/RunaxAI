@@ -86,7 +86,8 @@ def _execute_planned_calls(selected_calls, mode: str):
     if mode != "parallel" or len(selected_calls) == 1:
         planned = selected_calls[0]
         proxy = ToolCallProxy(planned.tool_call)
-        return [(planned, execute_tool_call(proxy))]
+        message, info = execute_tool_call(proxy)
+        return [(planned, message, info)]
 
     proxies = [ToolCallProxy(planned.tool_call) for planned in selected_calls]
     with ThreadPoolExecutor() as executor:
@@ -101,7 +102,7 @@ def _execute_planned_calls(selected_calls, mode: str):
 
     order = {planned.tool_call["id"]: index for index, planned in enumerate(selected_calls)}
     ordered_results.sort(key=lambda item: order[item[0].tool_call["id"]])
-    return [(planned, result) for planned, _, result in ordered_results]
+    return [(planned, result[0], result[1]) for planned, _, result in ordered_results]
 
 
 def _stream_no_tool_response(messages: list[dict], guidance: str, build_llm_messages=None):
@@ -354,7 +355,11 @@ def chat_stream(session_id: str, user_message: str, attachments: list[dict] | No
                     yield _sse(
                         "tool",
                         json.dumps(
-                            {"name": planned.tool_name, "args": planned.args}
+                            {
+                                "id": planned.tool_call["id"],
+                                "name": planned.tool_name,
+                                "args": planned.args,
+                            }
                         ),
                     )
 
@@ -369,12 +374,22 @@ def chat_stream(session_id: str, user_message: str, attachments: list[dict] | No
                 )
 
                 results = _execute_planned_calls(plan.selected_calls, plan.mode)
-                for planned, result in results:
+                for planned, result, info in results:
                     messages.append(result)
                     tool_evidence_version += 1
                     last_evidence_by_fingerprint[
                         planned.fingerprint
                     ] = tool_evidence_version
+                    yield _sse(
+                        "tool_result",
+                        json.dumps(
+                            {
+                                "id": planned.tool_call["id"],
+                                "name": planned.tool_name,
+                                "cache_hit": bool(info.get("cache_hit", False)),
+                            }
+                        ),
+                    )
                     result_content = result.get("content", "")
                     summary = _format_result_summary(
                         planned.tool_name, result_content
