@@ -5,9 +5,50 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
 import { formatDate, getAllPosts, getPost } from "@/lib/blog";
+import MermaidDiagram from "@/components/visualizations/MermaidDiagram";
 
 export const revalidate = 60;
+
+/**
+ * Custom rehype plugin to catch ```mermaid blocks before rehype-pretty-code
+ * processes them. It transforms them into a <mermaid-diagram> element
+ * which we then map to our React component.
+ */
+function rehypeMermaid() {
+  return (tree: any) => {
+    visit(tree, "element", (node: any) => {
+      if (
+        node.tagName === "pre" &&
+        node.children?.length === 1 &&
+        node.children[0].tagName === "code"
+      ) {
+        const codeNode = node.children[0];
+        const className = codeNode.properties?.className || [];
+        const isMermaid = Array.isArray(className)
+          ? className.includes("language-mermaid")
+          : className.includes("language-mermaid");
+
+        if (isMermaid) {
+          // Change the node to our custom component tag
+          node.tagName = "mermaid-diagram";
+          node.properties = {
+            // The raw code is usually the first child's value
+            code: codeNode.children[0]?.value || "",
+          };
+          // Clear children so it doesn't render the raw code block inside
+          node.children = [];
+        }
+      }
+    });
+  };
+}
+
+const mdxComponents = {
+  // Map the custom tag from our plugin to the React component
+  "mermaid-diagram": (props: any) => <MermaidDiagram {...props} />,
+};
 
 export async function generateStaticParams() {
   const posts = await getAllPosts();
@@ -69,10 +110,12 @@ export default async function BlogPostPage({
       <div className="blog-prose">
         <MDXRemote
           source={post.content}
+          components={mdxComponents}
           options={{
             mdxOptions: {
               remarkPlugins: [remarkGfm],
               rehypePlugins: [
+                rehypeMermaid,
                 rehypeSlug,
                 [
                   rehypePrettyCode,
