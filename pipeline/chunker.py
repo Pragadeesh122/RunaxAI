@@ -123,35 +123,83 @@ def _select_strategy(pages: list[dict]) -> str:
     return "recursive"
 
 
+_PAGE_JOINER = "\n\n"
+
+
 def _recursive_chunk(
     pages: list[dict],
     chunk_size: int,
     overlap: int,
 ) -> list[dict]:
-    """Split text recursively by separators, then apply sentence-aware overlap."""
-    chunks = []
-    chunk_index = 0
+    """Concat pages, chunk the full doc, then attribute chunks back to pages.
+
+    Page-by-page chunking truncates sentences that span a page break. We
+    instead build a single string with an offset map so chunks can flow
+    across boundaries; each chunk inherits the page where its start offset
+    lives.
+    """
+    if not pages:
+        return []
+
+    parts: list[str] = []
+    # (start_offset, end_offset, page_number, source)
+    page_map: list[tuple[int, int, int | None, str]] = []
+    offset = 0
 
     for page in pages:
         text = page["text"]
-        page_num = page["page_number"]
-        source = page["source"]
+        if not text:
+            continue
+        if parts:
+            parts.append(_PAGE_JOINER)
+            offset += len(_PAGE_JOINER)
+        start = offset
+        parts.append(text)
+        offset += len(text)
+        page_map.append((start, offset, page["page_number"], page["source"]))
 
-        segments = _split_recursive(text, chunk_size, SEPARATORS)
+    full_text = "".join(parts)
+    if not full_text:
+        return []
 
-        for segment in segments:
-            segment = segment.strip()
-            if not segment:
-                continue
-            chunks.append({
-                "text": segment,
-                "page_number": page_num,
-                "source": source,
-                "chunk_index": chunk_index,
-            })
-            chunk_index += 1
+    fallback_source = pages[0]["source"]
+    segments = _split_recursive(full_text, chunk_size, SEPARATORS)
 
-    # Apply sentence-boundary-aware overlap
+    chunks: list[dict] = []
+    search_pos = 0
+    chunk_index = 0
+
+    for segment in segments:
+        stripped = segment.strip()
+        if not stripped:
+            continue
+
+        # _split_recursive returns substrings of full_text, so find the
+        # offset by stepping forward from where we last matched.
+        idx = full_text.find(segment, search_pos)
+        if idx < 0:
+            idx = full_text.find(segment)
+        if idx >= 0:
+            search_pos = idx + len(segment)
+        else:
+            idx = 0  # shouldn't happen, but stay safe
+
+        page_num: int | None = None
+        source = fallback_source
+        for start, end, p_num, src in page_map:
+            if start <= idx < end:
+                page_num = p_num
+                source = src
+                break
+
+        chunks.append({
+            "text": stripped,
+            "page_number": page_num,
+            "source": source,
+            "chunk_index": chunk_index,
+        })
+        chunk_index += 1
+
     if overlap > 0 and len(chunks) > 1:
         chunks = _apply_overlap(chunks, chunk_size, overlap)
 
