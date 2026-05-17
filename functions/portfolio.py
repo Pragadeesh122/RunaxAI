@@ -1,7 +1,7 @@
 import logging
 import os
 from dotenv import load_dotenv
-from clients import llm_client, pinecone_client
+from clients import llm_client
 from llm.response_utils import extract_first_embedding
 
 load_dotenv()
@@ -54,6 +54,8 @@ def portfolio(query: str) -> list:
         raise RuntimeError(f"Embedding failed: {e}") from e
 
     try:
+        from clients import pinecone_client
+
         index = pinecone_client.Index("pragadeesh")
         results = index.query(vector=query_vector, top_k=5, include_metadata=True)
     except Exception as e:
