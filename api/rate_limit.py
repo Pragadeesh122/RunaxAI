@@ -51,17 +51,17 @@ RATE_LIMIT_RULES = (
         "window": 60,
     },
     {
-        "name": "project_upload_init",
+        "name": "project_document_upload",
         "method": "POST",
-        "pattern": re.compile(r"^/projects/[^/]+/upload$"),
+        "pattern": re.compile(r"^/projects/[^/]+/documents$"),
         "limit": 20,
         "window": 60,
     },
     {
-        "name": "project_upload_confirm",
+        "name": "project_document_reingest",
         "method": "PUT",
-        "pattern": re.compile(r"^/projects/[^/]+/upload$"),
-        "limit": 30,
+        "pattern": re.compile(r"^/projects/[^/]+/documents/[^/]+/file$"),
+        "limit": 20,
         "window": 60,
     },
 )

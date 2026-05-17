@@ -61,23 +61,26 @@ def _presign_client() -> Minio:
     )
 
 
-def get_presigned_put_url(object_key: str, expires: int = 3600) -> str:
-    """Generate a presigned PUT URL for direct browser upload.
+def put_object_stream(
+    object_key: str,
+    fileobj,
+    length: int,
+    content_type: str | None = None,
+) -> None:
+    """Stream an object into MinIO using internal credentials.
 
-    Args:
-        object_key: The object key (e.g. "project_id/document_id.pdf")
-        expires: URL expiry in seconds (default 1 hour)
-
-    Returns:
-        Presigned URL string
+    Used by auth-gated upload endpoints so the browser never receives a
+    presigned PUT URL (which is a bearer token).
     """
     ensure_bucket()
-    url = _presign_client().presigned_put_object(
+    minio_client.put_object(
         BUCKET_NAME,
         object_key,
-        expires=timedelta(seconds=expires),
+        fileobj,
+        length=length,
+        content_type=content_type or "application/octet-stream",
     )
-    return url
+    logger.info(f"stored '{object_key}' ({length} bytes)")
 
 
 def get_presigned_get_url(object_key: str, expires: int = 3600) -> str:
@@ -89,6 +92,21 @@ def get_presigned_get_url(object_key: str, expires: int = 3600) -> str:
         expires=timedelta(seconds=expires),
     )
     return url
+
+
+def get_object_stream(object_key: str):
+    """Return the raw MinIO HTTPResponse for an object.
+
+    Caller is responsible for ``close()`` and ``release_conn()`` on the
+    response. Used by auth-gated streaming endpoints so the browser never
+    receives a presigned GET URL (which is a bearer token).
+    """
+    return minio_client.get_object(BUCKET_NAME, object_key)
+
+
+def stat_object(object_key: str):
+    """Return MinIO object stat (size, content-type, etag, etc.)."""
+    return minio_client.stat_object(BUCKET_NAME, object_key)
 
 
 def download_to_bytes(object_key: str) -> bytes:

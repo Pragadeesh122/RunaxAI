@@ -1,7 +1,7 @@
 import os
 import uuid
 import logging
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile, File
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,7 @@ from database.models import User, Project, Document, ChatSession, ChatMessage
 from services.project_service import ProjectService
 from services.document_service import DocumentService
 from pipeline.retriever import retrieve
-from pipeline.storage import ensure_bucket, get_presigned_put_url
+from pipeline.storage import put_object_stream
 from api.project_chat import project_chat_stream
 from api.session import session_owned_by_user
 from tasks.document_tasks import process_document_task
@@ -31,6 +31,9 @@ redis_host = os.getenv("REDIS_HOST", "localhost")
 redis_port = int(os.getenv("REDIS_PORT", "6379"))
 document_ingest_mode = os.getenv("DOCUMENT_INGEST_MODE", "worker").lower()
 
+PROJECT_DOC_SUPPORTED_EXTS = {"pdf", "txt", "md", "csv", "docx"}
+PROJECT_DOC_MAX_BYTES = 100 * 1024 * 1024
+
 
 async def get_arq_pool():
     return await create_pool(RedisSettings(host=redis_host, port=redis_port))
@@ -44,18 +47,6 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
-
-class UploadInitRequest(BaseModel):
-    filename: str
-    fileSize: int = 0
-
-class UploadConfirmRequest(BaseModel):
-    documentId: str
-    filename: str
-
-class DocumentReingestRequest(BaseModel):
-    filename: str
-    fileSize: int = 0
 
 class ProjectChatRequest(BaseModel):
     sessionId: str
@@ -173,82 +164,21 @@ async def delete_project(
 
 
 # --- Documents CRUD & Upload flow ---
-@router.post("/{project_id}/upload")
-async def start_upload(
+async def _enqueue_ingestion(
+    object_key: str,
     project_id: str,
-    req: UploadInitRequest,
-    user: User = Depends(current_active_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Generate DB record and presigned PUT URL."""
-    project = await ProjectService(db).get_project(project_id, user.id)
-    if not project:
-        raise HTTPException(404, "Project not found")
-    
-    ext = req.filename.rsplit(".", 1)[-1].lower() if "." in req.filename else ""
-    supported = {"pdf", "txt", "md", "csv", "docx"}
-    if ext not in supported:
-        raise HTTPException(400, f"Unsupported file type. Supported: {', '.join(supported)}")
-
-    doc_service = DocumentService(db)
-    # create_document_record acts as initialization
-    doc = await doc_service.create_document_record(
-        project_id=project_id,
-        user_id=user.id,
-        filename=req.filename,
-        file_type=ext,
-        file_size=req.fileSize
-    )
-    
-    object_key = f"{project_id}/{doc.id}.{ext}"
-    try:
-        ensure_bucket()
-        url = get_presigned_put_url(object_key)
-    except Exception as e:
-        logger.error(f"failed to generate presigned URL: {e}")
-        # rollback document creation conceptually
-        await db.execute(delete(Document).where(Document.id == doc.id))
-        await db.commit()
-        raise HTTPException(status_code=500, detail="Failed to generate upload URL")
-
-    serialized = _serialize_document(doc)
-    return {
-        **serialized,
-        "uploadUrl": url
-    }
-
-@router.put("/{project_id}/upload")
-async def confirm_upload(
-    project_id: str,
-    req: UploadConfirmRequest,
+    document_id: str,
+    filename: str,
     background_tasks: BackgroundTasks,
-    user: User = Depends(current_active_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Trigger background ingestion after MinIO upload completes."""
-    project = await ProjectService(db).get_project(project_id, user.id)
-    if not project:
-        raise HTTPException(404, "Project not found")
-
-    ext = req.filename.rsplit(".", 1)[-1].lower() if "." in req.filename else ""
-    object_key = f"{project_id}/{req.documentId}.{ext}"
-
-    stmt = select(Document).where(Document.id == req.documentId, Document.project_id == project_id)
-    doc = (await db.execute(stmt)).scalar_one_or_none()
-    if not doc:
-        raise HTTPException(404, "Document not found")
-        
-    doc.status = "processing"
-    await db.commit()
-
+) -> None:
     if document_ingest_mode == "background":
         background_tasks.add_task(
             process_document_task,
             {},
             object_key,
             project_id,
-            req.documentId,
-            req.filename,
+            document_id,
+            filename,
         )
     else:
         arq_pool = await get_arq_pool()
@@ -256,11 +186,65 @@ async def confirm_upload(
             "process_document_task",
             object_key,
             project_id,
-            req.documentId,
-            req.filename,
+            document_id,
+            filename,
         )
 
-    return {"document_id": req.documentId, "status": "processing"}
+
+@router.post("/{project_id}/documents")
+async def upload_document(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Stream a document into MinIO via the auth-gated backend, then enqueue ingestion."""
+    project = await ProjectService(db).get_project(project_id, user.id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    filename = file.filename or ""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in PROJECT_DOC_SUPPORTED_EXTS:
+        raise HTTPException(
+            400,
+            f"Unsupported file type. Supported: {', '.join(sorted(PROJECT_DOC_SUPPORTED_EXTS))}",
+        )
+
+    size = file.size or 0
+    if size <= 0:
+        raise HTTPException(400, "Empty file")
+    if size > PROJECT_DOC_MAX_BYTES:
+        raise HTTPException(
+            400,
+            f"File exceeds {PROJECT_DOC_MAX_BYTES // (1024 * 1024)} MB limit",
+        )
+
+    doc_service = DocumentService(db)
+    doc = await doc_service.create_document_record(
+        project_id=project_id,
+        user_id=user.id,
+        filename=filename,
+        file_type=ext,
+        file_size=size,
+    )
+
+    object_key = f"{project_id}/{doc.id}.{ext}"
+    try:
+        put_object_stream(object_key, file.file, size, file.content_type)
+    except Exception as e:
+        logger.error(f"failed to store document '{object_key}': {e}")
+        await db.execute(delete(Document).where(Document.id == doc.id))
+        await db.commit()
+        raise HTTPException(status_code=500, detail="Failed to store upload")
+
+    doc.status = "processing"
+    await db.commit()
+
+    await _enqueue_ingestion(object_key, project_id, doc.id, filename, background_tasks)
+
+    return _serialize_document(doc)
 
 @router.get("/{project_id}/documents")
 async def list_documents(
@@ -282,46 +266,60 @@ async def remove_document(
     await doc_service.delete_document(project_id, doc_id, user.id)
     return {"status": "deleted"}
 
-@router.patch("/{project_id}/documents/{doc_id}/reingest")
+@router.put("/{project_id}/documents/{doc_id}/file")
 async def reingest_document(
     project_id: str,
     doc_id: str,
-    req: DocumentReingestRequest,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
     user: User = Depends(current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     project = await ProjectService(db).get_project(project_id, user.id)
     if not project:
         raise HTTPException(404, "Project not found")
 
-    ext = req.filename.rsplit(".", 1)[-1].lower() if "." in req.filename else ""
-    supported = {"pdf", "txt", "md", "csv", "docx"}
-    if ext not in supported:
-        raise HTTPException(400, f"Unsupported file type. Supported: {', '.join(supported)}")
+    filename = file.filename or ""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in PROJECT_DOC_SUPPORTED_EXTS:
+        raise HTTPException(
+            400,
+            f"Unsupported file type. Supported: {', '.join(sorted(PROJECT_DOC_SUPPORTED_EXTS))}",
+        )
+
+    size = file.size or 0
+    if size <= 0:
+        raise HTTPException(400, "Empty file")
+    if size > PROJECT_DOC_MAX_BYTES:
+        raise HTTPException(
+            400,
+            f"File exceeds {PROJECT_DOC_MAX_BYTES // (1024 * 1024)} MB limit",
+        )
 
     doc_service = DocumentService(db)
     doc = await doc_service.prepare_reingest(
         project_id=project_id,
         doc_id=doc_id,
         user_id=user.id,
-        filename=req.filename,
+        filename=filename,
         file_type=ext,
-        file_size=req.fileSize,
+        file_size=size,
     )
 
     object_key = f"{project_id}/{doc.id}.{ext}"
     try:
-        ensure_bucket()
-        url = get_presigned_put_url(object_key)
+        put_object_stream(object_key, file.file, size, file.content_type)
     except Exception as e:
-        logger.error(f"failed to generate reingest URL: {e}")
-        await doc_service.mark_failed(doc.id, "Failed to generate upload URL")
-        raise HTTPException(status_code=500, detail="Failed to generate upload URL")
+        logger.error(f"failed to store reingest '{object_key}': {e}")
+        await doc_service.mark_failed(doc.id, "Failed to store upload")
+        raise HTTPException(status_code=500, detail="Failed to store upload")
 
-    return {
-        **_serialize_document(doc),
-        "uploadUrl": url,
-    }
+    doc.status = "processing"
+    await db.commit()
+
+    await _enqueue_ingestion(object_key, project_id, doc.id, filename, background_tasks)
+
+    return _serialize_document(doc)
 
 @router.get("/{project_id}/documents/{doc_id}/status")
 async def get_document_status(

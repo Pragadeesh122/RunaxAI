@@ -7,13 +7,15 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from fastapi import FastAPI, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, Request, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
-from pipeline.storage import ensure_bucket, get_presigned_put_url, get_presigned_get_url
+from minio.error import S3Error
+
+from pipeline.storage import put_object_stream, get_object_stream, stat_object
 
 from api.session import (
     create_session,
@@ -221,7 +223,6 @@ class ChatAttachmentRef(BaseModel):
     filename: str
     mimeType: str = ""
     fileSize: int = 0
-    storageKey: str
 
 
 class ChatRequest(BaseModel):
@@ -249,12 +250,6 @@ def _chat_attachment_ext(filename: str) -> str:
 
 def _chat_storage_prefix(user_id: str) -> str:
     return f"{CHAT_UPLOAD_PREFIX}/{user_id}/"
-
-
-class ChatUploadInitRequest(BaseModel):
-    filename: str
-    fileSize: int = 0
-    mimeType: str = ""
 
 
 class RestoreRequest(BaseModel):
@@ -294,11 +289,16 @@ def chat(req: ChatRequest, user: User = Depends(current_active_user)):
     user_prefix = _chat_storage_prefix(str(user.id))
     attachments = []
     for att in req.attachments:
-        if not att.storageKey.startswith(user_prefix):
-            raise HTTPException(status_code=403, detail="Attachment not owned by user")
+        ext = _chat_attachment_ext(att.filename)
+        if ext not in CHAT_ATTACHMENT_ALLOWED_EXTS:
+            raise HTTPException(status_code=400, detail="Unsupported attachment type")
         if att.fileSize and att.fileSize > CHAT_ATTACHMENT_MAX_BYTES:
             raise HTTPException(status_code=400, detail="Attachment exceeds size limit")
-        attachments.append(att.model_dump())
+        # storageKey is derived server-side from the session, never trusted from
+        # the client. The attachment id alone identifies the upload.
+        att_dict = att.model_dump()
+        att_dict["storageKey"] = f"{user_prefix}{att.id}.{ext}"
+        attachments.append(att_dict)
 
     if attachments:
         chat_logger = logging.getLogger("api.chat_stream")
@@ -378,24 +378,29 @@ def chat(req: ChatRequest, user: User = Depends(current_active_user)):
         raise HTTPException(status_code=404, detail="Session not found")
 
 
-@app.post("/chat/upload")
-def chat_upload_init(
-    req: ChatUploadInitRequest,
+@app.post("/chat/attachments")
+def chat_attachment_upload(
+    file: UploadFile = File(...),
     user: User = Depends(current_active_user),
 ):
-    """Generate a presigned PUT URL for a chat attachment.
+    """Stream a chat attachment into MinIO via the auth-gated backend.
 
     No DB row is created — the user binding lives in the storage key prefix
     (chat/{user_id}/{attachment_id}.{ext}). The frontend is expected to send
     the returned ref back in the next /chat/stream call.
     """
-    ext = _chat_attachment_ext(req.filename)
+    filename = file.filename or ""
+    ext = _chat_attachment_ext(filename)
     if ext not in CHAT_ATTACHMENT_ALLOWED_EXTS:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file type. Allowed: {', '.join(sorted(CHAT_ATTACHMENT_ALLOWED_EXTS))}",
         )
-    if req.fileSize and req.fileSize > CHAT_ATTACHMENT_MAX_BYTES:
+
+    size = file.size or 0
+    if size <= 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if size > CHAT_ATTACHMENT_MAX_BYTES:
         raise HTTPException(
             status_code=400,
             detail=f"File exceeds {CHAT_ATTACHMENT_MAX_BYTES // (1024 * 1024)} MB limit",
@@ -405,37 +410,72 @@ def chat_upload_init(
     storage_key = f"{_chat_storage_prefix(str(user.id))}{attachment_id}.{ext}"
 
     try:
-        ensure_bucket()
-        upload_url = get_presigned_put_url(storage_key)
+        put_object_stream(storage_key, file.file, size, file.content_type)
     except Exception as exc:
-        logging.getLogger("api.chat_upload").error("presign PUT failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Failed to generate upload URL")
+        logging.getLogger("api.chat_upload").error("store failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to store upload")
 
     return {
         "id": attachment_id,
-        "filename": req.filename,
-        "mimeType": req.mimeType,
-        "fileSize": req.fileSize,
-        "storageKey": storage_key,
-        "uploadUrl": upload_url,
+        "filename": filename,
+        "mimeType": file.content_type or "",
+        "fileSize": size,
     }
 
 
-@app.get("/chat/attachments/url")
-def chat_attachment_url(
-    key: str,
+@app.get("/chat/attachments/file")
+def chat_attachment_file(
+    id: str,
+    filename: str,
     user: User = Depends(current_active_user),
 ):
-    """Return a short-lived presigned GET URL so the frontend can preview/download
-    a chat attachment. Validates the key is under the caller's prefix."""
-    if not key.startswith(_chat_storage_prefix(str(user.id))):
-        raise HTTPException(status_code=403, detail="Attachment not owned by user")
+    """Stream a chat attachment through the auth-gated backend.
+
+    The storage key is derived from the session, so clients can never reference
+    another user's file. No presigned URL is ever generated — the URL the
+    browser sees points at this backend route and is useless without the
+    session cookie.
+    """
+    ext = _chat_attachment_ext(filename)
+    if ext not in CHAT_ATTACHMENT_ALLOWED_EXTS:
+        raise HTTPException(status_code=400, detail="Unsupported attachment type")
+    storage_key = f"{_chat_storage_prefix(str(user.id))}{id}.{ext}"
+
     try:
-        url = get_presigned_get_url(key, expires=300)
-    except Exception as exc:
-        logging.getLogger("api.chat_upload").error("presign GET failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Failed to generate download URL")
-    return {"url": url}
+        stat = stat_object(storage_key)
+    except S3Error as exc:
+        if exc.code in ("NoSuchKey", "NoSuchObject"):
+            raise HTTPException(status_code=404, detail="Attachment not found")
+        logging.getLogger("api.chat_upload").error("stat failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to read attachment")
+
+    try:
+        response = get_object_stream(storage_key)
+    except S3Error as exc:
+        if exc.code in ("NoSuchKey", "NoSuchObject"):
+            raise HTTPException(status_code=404, detail="Attachment not found")
+        logging.getLogger("api.chat_upload").error("get failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to read attachment")
+
+    def _iter():
+        try:
+            for chunk in response.stream(amt=64 * 1024):
+                yield chunk
+        finally:
+            response.close()
+            response.release_conn()
+
+    safe_name = (filename or "attachment").replace('"', "")
+    headers = {
+        "Content-Length": str(stat.size),
+        "Content-Disposition": f'inline; filename="{safe_name}"',
+        "Cache-Control": "private, max-age=300",
+    }
+    return StreamingResponse(
+        _iter(),
+        media_type=stat.content_type or "application/octet-stream",
+        headers=headers,
+    )
 
 
 @app.get("/session/{session_id}/exists")

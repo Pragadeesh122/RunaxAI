@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "@phosphor-icons/react/dist/ssr/X";
 import { DownloadSimple } from "@phosphor-icons/react/dist/ssr/DownloadSimple";
 import { FileText } from "@phosphor-icons/react/dist/ssr/FileText";
-import { SpinnerGap } from "@phosphor-icons/react/dist/ssr/SpinnerGap";
 import { getChatAttachmentUrl } from "@/lib/api";
 import type { ChatAttachment } from "@/lib/types";
 
@@ -30,33 +30,11 @@ export default function AttachmentModal({
   attachment,
   onClose,
 }: AttachmentModalProps) {
-  const [preview, setPreview] = useState<{
-    storageKey: string;
-    url: string | null;
-    error: string | null;
-  } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!attachment) return;
-
-    let cancelled = false;
-    const storageKey = attachment.storageKey;
-    getChatAttachmentUrl(attachment.storageKey)
-      .then((u) => {
-        if (!cancelled) setPreview({ storageKey, url: u, error: null });
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setPreview({
-          storageKey,
-          url: null,
-          error: err instanceof Error ? err.message : "Failed to load attachment",
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [attachment]);
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!attachment) return;
@@ -67,18 +45,15 @@ export default function AttachmentModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [attachment, onClose]);
 
-  if (!attachment) return null;
+  if (!attachment || !mounted) return null;
 
   const isImage = isImageAttachment(attachment);
   const isPdf = isPdfAttachment(attachment);
-  const currentPreview =
-    preview?.storageKey === attachment.storageKey ? preview : null;
-  const url = currentPreview?.url ?? null;
-  const error = currentPreview?.error ?? null;
+  const url = getChatAttachmentUrl(attachment);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -95,18 +70,16 @@ export default function AttachmentModal({
             </span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {url && (
-              <a
-                href={url}
-                download={attachment.filename}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Download"
-                className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/8 transition-colors"
-              >
-                <DownloadSimple size={18} aria-hidden="true" />
-              </a>
-            )}
+            <a
+              href={url}
+              download={attachment.filename}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Download"
+              className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/8 transition-colors"
+            >
+              <DownloadSimple size={18} aria-hidden="true" />
+            </a>
             <button
               type="button"
               onClick={onClose}
@@ -119,19 +92,12 @@ export default function AttachmentModal({
         </header>
 
         <div className="flex-1 min-h-0 overflow-auto bg-black/30">
-          {error ? (
-            <div className="flex items-center justify-center h-64 text-sm text-rose-400">
-              {error}
-            </div>
-          ) : !url ? (
-            <div className="flex items-center justify-center h-64 text-zinc-500">
-              <SpinnerGap size={20} className="animate-spin" aria-hidden="true" />
-            </div>
-          ) : isImage ? (
+          {isImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={url}
               alt={attachment.filename}
+              crossOrigin="use-credentials"
               className="block mx-auto max-h-[80vh]"
             />
           ) : isPdf ? (
@@ -160,6 +126,7 @@ export default function AttachmentModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

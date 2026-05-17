@@ -29,7 +29,6 @@ export interface ChatAttachment {
   filename: string;
   mimeType: string;
   fileSize: number;
-  storageKey: string;
 }
 
 export interface MessageMetadata {

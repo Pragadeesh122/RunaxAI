@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {useMemo, useState} from "react";
 import {Streamdown} from "streamdown";
 import {code} from "@streamdown/code";
 import {ActionBarPrimitive} from "@assistant-ui/react";
@@ -75,29 +75,17 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function AttachmentImageThumb({ storageKey, alt }: { storageKey: string; alt: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    getChatAttachmentUrl(storageKey)
-      .then((u) => {
-        if (!cancelled) setUrl(u);
-      })
-      .catch(() => {
-        if (!cancelled) setUrl(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [storageKey]);
-  if (!url) {
-    return <div className="w-12 h-12 rounded-md bg-white/5 animate-pulse" aria-hidden="true" />;
-  }
+function AttachmentImageThumb({
+  attachment,
+}: {
+  attachment: ChatAttachment;
+}) {
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
-      src={url}
-      alt={alt}
+      src={getChatAttachmentUrl(attachment)}
+      alt={attachment.filename}
+      crossOrigin="use-credentials"
       className="w-12 h-12 rounded-md object-cover bg-black/30"
     />
   );
@@ -123,7 +111,7 @@ function AttachmentChips({ attachments, onOpen }: AttachmentChipsProps) {
             className="group flex items-center gap-2 p-1 pr-2.5 rounded-xl bg-violet-600/10 border border-violet-500/15 hover:bg-violet-600/20 hover:border-violet-500/30 transition-colors"
           >
             {isImg ? (
-              <AttachmentImageThumb storageKey={att.storageKey} alt={att.filename} />
+              <AttachmentImageThumb attachment={att} />
             ) : (
               <span className="flex items-center justify-center w-12 h-12 rounded-md bg-white/5 text-zinc-300">
                 <FileText size={20} aria-hidden="true" />
@@ -267,6 +255,7 @@ return (
                 plugins={streamdownPlugins}
                 shikiTheme={streamdownThemes}
                 remend={streamdownRemend}
+                linkSafety={{enabled: false}}
                 caret="block"
                 controls={{code: {copy: true, download: false}}}
                 lineNumbers={false}>

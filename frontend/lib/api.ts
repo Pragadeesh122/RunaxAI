@@ -215,44 +215,24 @@ export function isAllowedChatAttachment(file: File): boolean {
 }
 
 export async function uploadChatAttachment(file: File): Promise<ChatAttachment> {
-  const initRes = await apiFetch("/api/chat/upload", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      filename: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
-    }),
-  });
-  if (!initRes.ok) {
-    const err = await initRes.json().catch(() => ({error: "Upload failed"}));
+  const body = new FormData();
+  body.append("file", file, file.name);
+  const res = await apiFetch("/api/chat/attachments", {method: "POST", body});
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({error: "Upload failed"}));
     throw new Error(err.detail || err.error || "Upload failed");
   }
-  const data = await initRes.json();
-  const {uploadUrl, ...attachment} = data as ChatAttachment & {uploadUrl: string};
-
-  const putRes = await fetch(uploadUrl, {
-    method: "PUT",
-    mode: "cors",
-    body: file,
-  });
-  if (!putRes.ok) {
-    const detail = await putRes.text().catch(() => "");
-    throw new Error(
-      `Direct upload to storage failed (${putRes.status}): ${detail.slice(0, 300)}`
-    );
-  }
-
-  return attachment;
+  return (await res.json()) as ChatAttachment;
 }
 
-export async function getChatAttachmentUrl(storageKey: string): Promise<string> {
-  const res = await apiFetch(
-    `/api/chat/attachments/url?key=${encodeURIComponent(storageKey)}`
-  );
-  if (!res.ok) throw new Error("Failed to get attachment URL");
-  const data = await res.json();
-  return data.url;
+export function getChatAttachmentUrl(
+  attachment: Pick<ChatAttachment, "id" | "filename">
+): string {
+  const params = new URLSearchParams({
+    id: attachment.id,
+    filename: attachment.filename,
+  });
+  return `${API_BASE_URL}/chat/attachments/file?${params}`;
 }
 
 export async function streamChat(
@@ -537,46 +517,17 @@ export async function uploadDocument(
   projectId: string,
   file: File
 ): Promise<ProjectDocument> {
-  // 1. Create DB record + receive a scoped presigned upload URL.
-  const initRes = await apiFetch(`/api/projects/${projectId}/upload`, {
+  const body = new FormData();
+  body.append("file", file, file.name);
+  const res = await apiFetch(`/api/projects/${projectId}/documents`, {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({filename: file.name, fileSize: file.size}),
+    body,
   });
-  if (!initRes.ok) {
-    const err = await initRes.json().catch(() => ({error: "Upload failed"}));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({error: "Upload failed"}));
     throw new Error(err.detail || err.error || "Upload failed");
   }
-
-  const {uploadUrl, ...document} = await initRes.json();
-
-  // 2. Upload file directly to object storage. No cookies should be sent.
-  const uploadRes = await fetch(uploadUrl, {
-    method: "PUT",
-    mode: "cors",
-    body: file,
-  });
-  if (!uploadRes.ok) {
-    const detail = await uploadRes.text().catch(() => "");
-    throw new Error(
-      `Direct upload to storage failed (${uploadRes.status}): ${detail.slice(
-        0,
-        300
-      )}`
-    );
-  }
-
-  // 3. Confirm upload and trigger ingestion.
-  const confirmRes = await apiFetch(`/api/projects/${projectId}/upload`, {
-    method: "PUT",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({documentId: document.id, filename: file.name}),
-  });
-  if (!confirmRes.ok) {
-    throw new Error("Failed to trigger ingestion");
-  }
-
-  return {...document, status: "processing"} as ProjectDocument;
+  return (await res.json()) as ProjectDocument;
 }
 
 export async function deleteDocument(
@@ -609,46 +560,17 @@ export async function reingestDocument(
   docId: string,
   file: File
 ): Promise<ProjectDocument> {
-  const initRes = await apiFetch(
-    `/api/projects/${projectId}/documents/${docId}/reingest`,
-    {
-      method: "PATCH",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({filename: file.name, fileSize: file.size}),
-    }
+  const body = new FormData();
+  body.append("file", file, file.name);
+  const res = await apiFetch(
+    `/api/projects/${projectId}/documents/${docId}/file`,
+    {method: "PUT", body}
   );
-  if (!initRes.ok) {
-    const err = await initRes.json().catch(() => ({error: "Re-ingest failed"}));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({error: "Re-ingest failed"}));
     throw new Error(err.detail || err.error || "Re-ingest failed");
   }
-
-  const {uploadUrl, ...document} = await initRes.json();
-
-  const uploadRes = await fetch(uploadUrl, {
-    method: "PUT",
-    mode: "cors",
-    body: file,
-  });
-  if (!uploadRes.ok) {
-    const detail = await uploadRes.text().catch(() => "");
-    throw new Error(
-      `Direct upload to storage failed (${uploadRes.status}): ${detail.slice(
-        0,
-        300
-      )}`
-    );
-  }
-
-  const confirmRes = await apiFetch(`/api/projects/${projectId}/upload`, {
-    method: "PUT",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({documentId: document.id, filename: file.name}),
-  });
-  if (!confirmRes.ok) {
-    throw new Error("Failed to trigger ingestion");
-  }
-
-  return {...document, status: "processing"} as ProjectDocument;
+  return (await res.json()) as ProjectDocument;
 }
 
 export async function pollDocumentStatus(
