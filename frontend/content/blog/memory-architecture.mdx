@@ -28,6 +28,39 @@ post is the design tour.
 Memory in RunaxAI lives in three places because three different jobs need
 three different storage shapes.
 
+```mermaid
+flowchart LR
+    subgraph Redis["Redis"]
+        S["session:id<br/>active message list"]
+        SU["session:id:user<br/>session ownership"]
+        C["memory-last-extracted:session_id<br/>content-hash cursor"]
+        RS["memory-summary:session_id<br/>rolling summary"]
+        L["memory-task-lock:session_id<br/>worker lock"]
+    end
+
+    subgraph Postgres["PostgreSQL"]
+        CS["chat_session"]
+        CM["chat_message"]
+        UMF["user_memory_fact<br/>atomic facts + vector(1536)"]
+    end
+
+    subgraph Workers["Background Jobs"]
+        PM["persist_memories_task"]
+        SM["refresh_rolling_summary_task"]
+    end
+
+    S --> PM
+    S --> SM
+    PM --> C
+    PM --> RS
+    PM --> L
+    PM --> UMF
+    SM --> RS
+    S --> CM
+    CS --> S
+    UMF --> S
+```
+
 **Working state** lives in Redis. The current message list for an active
 session, the ownership binding (who started this session), the agent the
 project chat router last picked, and — added for the new pipeline — a
@@ -100,6 +133,35 @@ The end of a chat turn looks like this:
 2. The updated message list is persisted to Postgres.
 3. `schedule_memory_persistence(session_id, user_id, messages)` enqueues an
    ARQ job and returns immediately.
+
+```mermaid
+sequenceDiagram
+    participant Chat as Chat / Project Chat
+    participant Redis as Redis
+    participant ARQ as ARQ Worker
+    participant LLM as LLM
+    participant PG as PostgreSQL
+
+    Chat->>Redis: Save updated session messages
+    Chat->>ARQ: enqueue persist_memories_task(messages, user_id, session_id)
+
+    ARQ->>Redis: SETNX memory-task-lock:session_id
+    ARQ->>Redis: GET memory-last-extracted:session_id
+    ARQ->>Redis: GET memory-summary:session_id
+    ARQ->>ARQ: Slice conversation using content-hash cursor
+
+    ARQ->>LLM: Pass 1 - MEMORY_EXTRACTION
+    LLM-->>ARQ: {"facts": [...]}
+
+    ARQ->>LLM: Embeddings for each candidate fact
+    ARQ->>PG: Top-5 similar unsuperseded facts via pgvector
+    ARQ->>LLM: Pass 2 - MEMORY_CONSOLIDATION_BATCH
+    LLM-->>ARQ: {"decisions": [...]}
+
+    ARQ->>PG: Apply ADD / UPDATE / DELETE / NONE in one transaction
+    ARQ->>Redis: SET memory-last-extracted:session_id
+    ARQ->>Redis: DEL memory-task-lock:session_id
+```
 
 The user sees `done`. They start typing the next message. Meanwhile, in a
 worker process, `persist_memories_task` runs.

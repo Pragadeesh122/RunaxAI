@@ -257,14 +257,42 @@ indexed query.
 
 The architecture itself is small enough to fit in one paragraph:
 
+```mermaid
+graph LR
+    Browser -->|page requests| NextJS["Next.js :3000<br/>SSR + Client UI"]
+    Browser -->|interactive HTTP / SSE| FastAPI["FastAPI :8000<br/>Python Backend"]
+    NextJS -->|SSR data fetch| FastAPI
+
+    FastAPI --- DB[("PostgreSQL<br/>users, sessions,<br/>messages, projects")]
+    FastAPI --- Redis[("Redis<br/>sessions, cache,<br/>memory, jobs")]
+    FastAPI --- Pinecone[("Pinecone<br/>vectors")]
+    FastAPI --- MinIO[("MinIO<br/>file storage")]
+    FastAPI --- LLM["LLM Providers<br/>OpenAI, Anthropic,<br/>Gemini, Grok, Ollama"]
+
+    subgraph Monitoring
+        Prometheus
+        Loki
+        Tempo
+        Grafana
+    end
+
+    FastAPI -->|metrics| Prometheus
+    FastAPI -->|OTLP| Tempo
+    Grafana --- Prometheus
+    Grafana --- Loki
+    Grafana --- Tempo
+```
+
 A Next.js 16 frontend talks **directly** to a FastAPI backend — there's no
-Next.js proxy layer (the only Next API route is the Google OAuth callback).
+...
+A Next.js 16 frontend talks **directly** to a FastAPI backend — there's no
 FastAPI handles auth via `fastapi-users` with cookies, persists everything
 to a single Postgres with pgvector, uses Redis for sessions and the ARQ job
 queue, talks to Pinecone for document vectors, and stores files in MinIO.
 An ARQ worker process handles ingestion and memory writes off the request
 path. Observability is the Prometheus / Loki / Tempo / Grafana stack with
 custom spans for every LLM call, every retrieval, every tool execution.
+
 
 The LLM layer is provider-agnostic. OpenAI, Anthropic, Gemini, Grok, and
 Ollama all go through the same `LLMClient` facade with the same

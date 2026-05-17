@@ -12,11 +12,23 @@ In RunaxAI, we built an **Adaptive Retrieval Pipeline** that fundamentally shift
 
 ```mermaid
 flowchart LR
-    A[User message] --> B[Route to agent]
-    B --> C[Retrieve from Pinecone]
-    C --> D[Build context block]
-    D --> E[LLM with augmented prompt]
-    E --> F[Stream response]
+    subgraph Ingestion
+        A[MinIO download] --> B[Text extraction]
+        B --> C[Chunking]
+        C --> D[Dense + sparse embedding]
+        D --> E[Pinecone upsert]
+    end
+
+    subgraph Retrieval
+        F[User query] --> G[Cache check]
+        G -->|miss| H[Embed query]
+        H --> I[Pinecone search]
+        I --> J{Rerank?}
+        J -->|yes| K[BGE reranker]
+        J -->|no| L[Return results]
+        K --> L
+        G -->|hit| L
+    end
 ```
 
 ## 1. Intelligent Chunking
