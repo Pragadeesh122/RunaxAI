@@ -16,6 +16,8 @@ export interface ToolCall {
   args?: Record<string, unknown>;
   startedAt?: number;
   completedAt?: number;
+  cacheHit?: boolean;
+  backendId?: string;
 }
 
 export type ThinkingEntry =

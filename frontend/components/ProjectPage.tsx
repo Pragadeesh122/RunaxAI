@@ -594,6 +594,7 @@ export default function ProjectPage({
           } else if (event.type === "tool") {
             const toolCall: ToolCall = {
               id: generateLocalId(),
+              backendId: event.data.id,
               name: event.data.name,
               args: event.data.args,
               status: "running",
@@ -616,6 +617,41 @@ export default function ProjectPage({
                         {type: "tool" as const, toolCall},
                       ],
                       thinkingStartedAt: m.thinkingStartedAt ?? Date.now(),
+                    }
+                  : m
+              )
+            );
+          } else if (event.type === "tool_result") {
+            const backendId = event.data.id;
+            const cacheHit = event.data.cache_hit === true;
+            const stamp = (calls: ToolCall[]) =>
+              calls.map((t) =>
+                t.backendId === backendId
+                  ? {...t, status: "done" as const, cacheHit}
+                  : t
+              );
+            const stampEntries = (entries: typeof finalThinkingEntries) =>
+              entries.map((entry) =>
+                entry.type === "tool" && entry.toolCall.backendId === backendId
+                  ? {
+                      ...entry,
+                      toolCall: {
+                        ...entry.toolCall,
+                        status: "done" as const,
+                        cacheHit,
+                      },
+                    }
+                  : entry
+              );
+            finalToolCalls = stamp(finalToolCalls);
+            finalThinkingEntries = stampEntries(finalThinkingEntries);
+            updateMessages(currentSessionId, (prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      toolCalls: stamp(m.toolCalls),
+                      thinkingEntries: stampEntries(m.thinkingEntries),
                     }
                   : m
               )

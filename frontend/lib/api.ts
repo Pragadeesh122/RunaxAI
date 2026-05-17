@@ -169,7 +169,8 @@ export async function restoreBackendSession(
 
 export type SSEEvent =
   | {type: "token"; data: string}
-  | {type: "tool"; data: {name: string; args?: Record<string, unknown>}}
+  | {type: "tool"; data: {name: string; args?: Record<string, unknown>; id?: string}}
+  | {type: "tool_result"; data: {id: string; name: string; cache_hit?: boolean}}
   | {type: "thinking"; data: {content: string}}
   | {type: "agent"; data: {name: string; description: string}}
   | {type: "retrieval"; data: {sources: RetrievalSource[]; count: number; cache_hit?: boolean}}
@@ -312,6 +313,12 @@ export async function streamChat(
           onEvent({type: "tool", data: JSON.parse(eventData)});
         } catch {
           // ignore malformed tool event
+        }
+      } else if (eventType === "tool_result") {
+        try {
+          onEvent({type: "tool_result", data: JSON.parse(eventData)});
+        } catch {
+          // ignore malformed tool_result event
         }
       } else if (eventType === "thinking") {
         try {
@@ -799,6 +806,12 @@ export async function streamProjectChat(
       } else if (eventType === "tool") {
         try {
           onEvent({type: "tool", data: JSON.parse(eventData)});
+        } catch {
+          // ignore
+        }
+      } else if (eventType === "tool_result") {
+        try {
+          onEvent({type: "tool_result", data: JSON.parse(eventData)});
         } catch {
           // ignore
         }
