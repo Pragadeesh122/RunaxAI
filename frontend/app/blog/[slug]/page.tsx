@@ -79,7 +79,7 @@ export default async function BlogPostPage({
   if (!post) notFound();
 
   return (
-    <article className="mx-auto max-w-4xl px-6 pt-16 pb-24">
+    <article className="mx-auto max-w-3xl px-6 pt-16 pb-24">
       <Link
         href="/blog"
         className="mb-10 inline-flex items-center gap-1.5 text-[12px] text-zinc-500 transition-colors hover:text-zinc-300"

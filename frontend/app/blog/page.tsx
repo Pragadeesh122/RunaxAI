@@ -7,7 +7,7 @@ export default async function BlogIndex() {
   const posts = await getAllPosts();
 
   return (
-    <div className="mx-auto max-w-4xl px-6 pt-16 pb-24">
+    <div className="mx-auto max-w-3xl px-6 pt-16 pb-24">
       <section className="mb-16">
         <p className="mb-3 text-[12px] uppercase tracking-[0.18em] text-emerald-400/80">
           Field notes
