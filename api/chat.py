@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functions import tool_policies
 from functions.tool_router import execute_tool_call
 from pipeline.chat_attachments import prepare_messages_for_llm
-from utils.streaming import iter_response, ToolCallProxy
+from utils.streaming import iter_response, ToolCallProxy, sanitize_for_client
 from utils.tool_planner import plan_tool_calls
 from utils.summarizer import summarize_messages
 from api.session import get_messages, save_messages, get_session_user
@@ -401,7 +401,7 @@ def chat_stream(session_id: str, user_message: str, attachments: list[dict] | No
 
         except Exception as e:
             logger.error(f"chat failed: {e}")
-            yield _sse("error", str(e))
+            yield _sse("error", sanitize_for_client(str(e)))
             # Remove the failed user message
             if messages and messages[-1].get("role") == "user":
                 messages.pop()

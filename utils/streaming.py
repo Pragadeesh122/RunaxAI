@@ -1,3 +1,4 @@
+import re
 import sys
 import logging
 import os
@@ -8,6 +9,20 @@ from llm.factory import get_llm_registry
 logger = logging.getLogger("orchestrator")
 ORCHESTRATOR_MODEL = os.getenv("ORCHESTRATOR_MODEL", "gpt-5.4")
 _STREAM_USAGE_PROVIDERS = {"openai", "grok"}
+
+# Matches any URL carrying an AWS/MinIO presigned signature. We never want
+# these to reach the browser via error events — the signature is a 10-minute
+# bearer token that grants read access to the underlying object.
+_PRESIGNED_URL_RE = re.compile(
+    r"https?://\S*?[?&]X-Amz-Signature=[A-Fa-f0-9]+\S*",
+)
+
+
+def sanitize_for_client(text: str) -> str:
+    """Strip presigned storage URLs from any string heading to the browser."""
+    if not text:
+        return text
+    return _PRESIGNED_URL_RE.sub("[storage URL redacted]", text)
 
 
 def _field(obj, key, default=None):

@@ -272,7 +272,7 @@ def project_chat_stream(
 
         except Exception as e:
             logger.error(f"project chat failed: {e}")
-            yield _sse("error", str(e))
+            yield _sse("error", sanitize_for_client(str(e)))
             save_messages(session_id, messages)
             return
 
