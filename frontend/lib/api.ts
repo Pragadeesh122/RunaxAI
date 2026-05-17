@@ -589,18 +589,6 @@ export async function deleteDocument(
   if (!res.ok) throw new Error("Failed to delete document");
 }
 
-export async function getDocumentDownloadUrl(
-  projectId: string,
-  docId: string
-): Promise<string> {
-  const res = await apiFetch(
-    `/api/projects/${projectId}/documents/${docId}/download`
-  );
-  if (!res.ok) throw new Error("Failed to get document URL");
-  const data = await res.json();
-  return data.url;
-}
-
 export async function searchProjectDocuments(
   projectId: string,
   query: string,

@@ -9,10 +9,8 @@ import {Check} from "@phosphor-icons/react/dist/ssr/Check";
 import {CaretDown} from "@phosphor-icons/react/dist/ssr/CaretDown";
 import {CaretUp} from "@phosphor-icons/react/dist/ssr/CaretUp";
 import {FileText} from "@phosphor-icons/react/dist/ssr/FileText";
-import {ArrowSquareOut} from "@phosphor-icons/react/dist/ssr/ArrowSquareOut";
-import {SpinnerGap} from "@phosphor-icons/react/dist/ssr/SpinnerGap";
 import "streamdown/styles.css";
-import {getChatAttachmentUrl, getDocumentDownloadUrl} from "@/lib/api";
+import {getChatAttachmentUrl} from "@/lib/api";
 import type {ChatAttachment, Message, ProjectDocument, RetrievalSource} from "@/lib/types";
 import ThinkingBlock from "./ThinkingBlock";
 import QuizRenderer, {tryParseQuiz} from "./QuizRenderer";
@@ -159,28 +157,10 @@ interface MessageBubbleProps {
 interface SourceDisplayItem {
   key: string;
   source: RetrievalSource;
-  document: ProjectDocument | null;
 }
 
 function normalizeSourceLabel(source: string): string {
   return source.trim().toLowerCase();
-}
-
-function matchDocumentForSource(
-  source: RetrievalSource,
-  documents: ProjectDocument[]
-): ProjectDocument | null {
-  const normalizedSource = normalizeSourceLabel(source.source);
-  return (
-    documents.find((document) => {
-      const normalizedFilename = normalizeSourceLabel(document.filename);
-      return (
-        normalizedSource === normalizedFilename ||
-        normalizedSource.startsWith(`${normalizedFilename} `) ||
-        normalizedSource.startsWith(`${normalizedFilename}(`)
-      );
-    }) ?? null
-  );
 }
 
 export default function MessageBubble({
@@ -192,7 +172,6 @@ export default function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [sourcesOpen, setSourcesOpen] = useState(false);
-  const [openingSourceKey, setOpeningSourceKey] = useState<string | null>(null);
   const [openAttachment, setOpenAttachment] = useState<ChatAttachment | null>(null);
 
   const messageAttachments = useMemo(() => {
@@ -230,33 +209,11 @@ export default function MessageBubble({
       if (seen.has(dedupeKey)) return [];
       seen.add(dedupeKey);
 
-      return [
-        {
-          key,
-          source,
-          document:
-            projectDocuments.length > 0
-              ? matchDocumentForSource(source, projectDocuments)
-              : null,
-        },
-      ];
+      return [{key, source}];
     });
-  }, [message.sources, projectDocuments]);
+  }, [message.sources]);
 
-  const handleOpenSource = async (item: SourceDisplayItem) => {
-    if (!projectId || !item.document) return;
-    setOpeningSourceKey(item.key);
-    try {
-      const url = await getDocumentDownloadUrl(projectId, item.document.id);
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      console.error("Failed to open source document:", error);
-    } finally {
-      setOpeningSourceKey(null);
-    }
-  };
-
-  return (
+return (
     <div
       className={`group/message flex flex-col gap-1 animate-message-in ${
         isUser ? "items-end" : "items-start"
@@ -354,48 +311,22 @@ export default function MessageBubble({
 
           {sourcesOpen && (
             <div className="flex flex-col gap-2 border-t border-white/6 px-3 py-3">
-              {sourceItems.map((item) => {
-                const isOpening = openingSourceKey === item.key;
-                return (
-                  <div
-                    key={item.key}
-                    className="flex items-start justify-between gap-3 rounded-xl border border-white/6 bg-black/10 px-3 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-zinc-200">
-                        {item.source.source}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-                        {item.source.page ? (
-                          <span>Page {item.source.page}</span>
-                        ) : null}
-                        <span>Score {item.source.score.toFixed(2)}</span>
-                        {item.document ? (
-                          <span className="text-zinc-600">Linked document</span>
-                        ) : (
-                          <span className="text-zinc-600">Preview unavailable</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {projectId && item.document ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleOpenSource(item)}
-                        disabled={isOpening}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-zinc-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-zinc-100 disabled:cursor-wait disabled:opacity-60"
-                      >
-                        {isOpening ? (
-                          <SpinnerGap size={12} className="animate-spin" />
-                        ) : (
-                          <ArrowSquareOut size={12} />
-                        )}
-                        <span>Open</span>
-                      </button>
+              {sourceItems.map((item) => (
+                <div
+                  key={item.key}
+                  className="rounded-xl border border-white/6 bg-black/10 px-3 py-2.5"
+                >
+                  <p className="truncate text-xs font-medium text-zinc-200">
+                    {item.source.source}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                    {item.source.page ? (
+                      <span>Page {item.source.page}</span>
                     ) : null}
+                    <span>Score {item.source.score.toFixed(2)}</span>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </div>

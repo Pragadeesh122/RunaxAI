@@ -120,6 +120,7 @@ export interface Project {
 export interface ProjectSearchResult {
   id: string;
   snippet: string;
+  text: string;
   source: string;
   page: number | null;
   score: number;

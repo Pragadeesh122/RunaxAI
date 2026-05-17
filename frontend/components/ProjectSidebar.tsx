@@ -21,7 +21,6 @@ import { Lightning } from '@phosphor-icons/react/dist/ssr/Lightning';
 import { ChatTeardropDots } from '@phosphor-icons/react/dist/ssr/ChatTeardropDots';
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { X } from '@phosphor-icons/react/dist/ssr/X';
-import { ArrowSquareOut } from '@phosphor-icons/react/dist/ssr/ArrowSquareOut';
 import { RunaxLogo } from './ChatArea';
 import SidebarAccountFooter from './SidebarAccountFooter';
 import type { Project, AgentInfo, Session, ProjectSearchResult, User } from '@/lib/types';
@@ -86,7 +85,6 @@ interface ProjectSidebarProps {
   onClearSearch: () => void;
   searchResults: ProjectSearchResult[];
   isSearching: boolean;
-  onOpenSearchResult: (result: ProjectSearchResult) => void;
   sessions: Session[];
   activeSessionId: string | null;
   onSelectSession: (id: string) => void;
@@ -112,7 +110,6 @@ export default function ProjectSidebar({
   onClearSearch,
   searchResults,
   isSearching,
-  onOpenSearchResult,
   sessions,
   activeSessionId,
   onSelectSession,
@@ -125,6 +122,7 @@ export default function ProjectSidebar({
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -299,36 +297,47 @@ export default function ProjectSidebar({
 
           {searchResults.length > 0 && (
             <ul className="mt-2 flex flex-col gap-1">
-              {searchResults.map((result) => (
-                <li
-                  key={result.id}
-                  className="px-2.5 py-2 rounded-lg border border-white/8 bg-white/3"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
+              {searchResults.map((result) => {
+                const isExpanded = expandedResultId === result.id;
+                return (
+                  <li
+                    key={result.id}
+                    className="rounded-lg border border-white/8 bg-white/3"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedResultId(isExpanded ? null : result.id)
+                      }
+                      className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-white/5 transition-colors duration-100"
+                      aria-expanded={isExpanded}
+                    >
                       <p className="text-xs font-medium text-zinc-300 truncate">
                         {result.source}
                       </p>
-                      <p className="mt-1 text-[11px] text-zinc-500 line-clamp-3">
-                        {result.snippet}
-                      </p>
+                      {!isExpanded && (
+                        <p className="mt-1 text-[11px] text-zinc-500 line-clamp-3">
+                          {result.snippet}
+                        </p>
+                      )}
                       <p className="mt-1 text-[10px] text-zinc-600">
                         {result.page !== null ? `Page ${result.page} · ` : ''}
                         Score {result.score.toFixed(2)}
+                        <span className="ml-1 text-zinc-700">
+                          {isExpanded ? '· hide' : '· show chunk'}
+                        </span>
                       </p>
-                    </div>
-                    {result.documentId && (
-                      <button
-                        onClick={() => onOpenSearchResult(result)}
-                        className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors duration-100"
-                        aria-label={`Open ${result.source}`}
-                      >
-                        <ArrowSquareOut size={13} />
-                      </button>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-2.5 pb-2.5 -mt-1">
+                        <p className="text-[11px] leading-relaxed text-zinc-400 whitespace-pre-wrap break-words max-h-72 overflow-y-auto rounded-md border border-white/5 bg-black/20 p-2">
+                          {result.text || result.snippet}
+                        </p>
+                      </div>
                     )}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

@@ -16,7 +16,7 @@ from database.models import User, Project, Document, ChatSession, ChatMessage
 from services.project_service import ProjectService
 from services.document_service import DocumentService
 from pipeline.retriever import retrieve
-from pipeline.storage import ensure_bucket, get_presigned_put_url, get_presigned_get_url
+from pipeline.storage import ensure_bucket, get_presigned_put_url
 from api.project_chat import project_chat_stream
 from api.session import session_owned_by_user
 from tasks.document_tasks import process_document_task
@@ -347,34 +347,6 @@ async def get_document_status(
     }
 
 
-@router.get("/{project_id}/documents/{doc_id}/download")
-async def get_document_download_url(
-    project_id: str,
-    doc_id: str,
-    user: User = Depends(current_active_user),
-    db: AsyncSession = Depends(get_db)
-):
-    project = await ProjectService(db).get_project(project_id, user.id)
-    if not project:
-        raise HTTPException(404, "Project not found")
-
-    stmt = select(Document).where(Document.id == doc_id, Document.project_id == project_id)
-    doc = (await db.execute(stmt)).scalar_one_or_none()
-    if not doc:
-        raise HTTPException(404, "Document not found")
-    if doc.status != "ready":
-        raise HTTPException(409, "Document is not ready")
-
-    object_key = f"{project_id}/{doc.id}.{doc.file_type}"
-    try:
-        url = get_presigned_get_url(object_key, expires=900)
-    except Exception as e:
-        logger.error(f"failed to generate document download URL: {e}")
-        raise HTTPException(500, "Failed to generate document URL")
-
-    return {"url": url}
-
-
 @router.post("/{project_id}/search")
 async def search_project_documents(
     project_id: str,
@@ -412,6 +384,7 @@ async def search_project_documents(
             {
                 "id": result.get("id"),
                 "snippet": _snippet(result.get("text", "")),
+                "text": result.get("text", ""),
                 "source": result.get("source", ""),
                 "page": result.get("page"),
                 "score": result.get("score", 0),

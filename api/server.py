@@ -431,7 +431,7 @@ def chat_attachment_url(
     if not key.startswith(_chat_storage_prefix(str(user.id))):
         raise HTTPException(status_code=403, detail="Attachment not owned by user")
     try:
-        url = get_presigned_get_url(key, expires=900)
+        url = get_presigned_get_url(key, expires=300)
     except Exception as exc:
         logging.getLogger("api.chat_upload").error("presign GET failed: %s", exc)
         raise HTTPException(status_code=500, detail="Failed to generate download URL")

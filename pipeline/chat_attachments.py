@@ -51,9 +51,9 @@ NATIVE_PDF_TOKENS_PER_PAGE = 1_500
 # that a single reference here is sufficient for sizing decisions.
 _TOKEN_COUNT_MODEL = "gpt-4o"
 
-# Presigned GET URL TTL for image links handed to the LLM. 1h is enough for the
-# turn; the URL is regenerated every time we rebuild context.
-IMAGE_URL_TTL = 3600
+# Presigned GET URL TTL for image links handed to the LLM. The provider fetches
+# the URL during the request; the URL is regenerated every time we rebuild context.
+IMAGE_URL_TTL = 600
 
 
 def _count_tokens(text: str) -> int:

@@ -15,7 +15,6 @@ import {
   reingestDocument,
   deleteDocument,
   downloadChatSessionMarkdown,
-  getDocumentDownloadUrl,
   pollDocumentStatus,
   createProjectSession,
   deleteProjectSession,
@@ -287,19 +286,6 @@ export default function ProjectPage({
     setSearchQuery("");
     setSearchResults([]);
   }, []);
-
-  const handleOpenSearchResult = useCallback(
-    async (result: ProjectSearchResult) => {
-      if (!result.documentId) return;
-      try {
-        const url = await getDocumentDownloadUrl(projectId, result.documentId);
-        window.open(url, "_blank", "noopener,noreferrer");
-      } catch (err) {
-        console.error("Failed to open search result:", err);
-      }
-    },
-    [projectId]
-  );
 
   const handleExportSession = useCallback(async () => {
     if (!activeSessionId) return;
@@ -950,7 +936,6 @@ export default function ProjectPage({
             onClearSearch={handleClearSearch}
             searchResults={searchResults}
             isSearching={isSearching}
-            onOpenSearchResult={handleOpenSearchResult}
             sessions={sessions}
             activeSessionId={activeSessionId}
             onSelectSession={handleSelectSession}
