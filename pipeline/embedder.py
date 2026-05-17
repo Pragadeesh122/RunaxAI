@@ -2,7 +2,7 @@
 
 import logging
 import os
-from clients import llm_client, pinecone_client
+from clients import llm_client
 from llm.response_utils import extract_embedding_vectors
 
 logger = logging.getLogger("pipeline.embedder")
@@ -56,6 +56,8 @@ def embed_sparse(texts: list[str]) -> list[dict]:
     """
     all_sparse = []
 
+    from clients import pinecone_client
+
     for i in range(0, len(texts), EMBEDDING_BATCH_SIZE):
         batch = texts[i : i + EMBEDDING_BATCH_SIZE]
         response = pinecone_client.inference.embed(
@@ -84,6 +86,8 @@ def embed_query_dense(query: str) -> list[float]:
 
 def embed_query_sparse(query: str) -> dict:
     """Embed a single query string with the sparse model."""
+    from clients import pinecone_client
+
     response = pinecone_client.inference.embed(
         model=SPARSE_MODEL,
         inputs=[query],

@@ -2,8 +2,6 @@
 
 import logging
 import os
-from clients import pinecone_client
-from pinecone import ServerlessSpec
 from observability.spans import retrieval_span
 
 logger = logging.getLogger("pipeline.pinecone")
@@ -19,6 +17,9 @@ def ensure_index() -> None:
     Hard-fails if an existing index has a different dimension than the
     configured one — otherwise upserts would silently corrupt the namespace.
     """
+    from clients import pinecone_client
+    from pinecone import ServerlessSpec
+
     existing_indexes = list(pinecone_client.list_indexes())
     existing_names = [idx.name for idx in existing_indexes]
     if INDEX_NAME in existing_names:
@@ -45,6 +46,8 @@ def ensure_index() -> None:
 
 def get_index():
     """Return a handle to the Pinecone index."""
+    from clients import pinecone_client
+
     return pinecone_client.Index(INDEX_NAME)
 
 
