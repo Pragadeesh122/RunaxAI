@@ -337,11 +337,11 @@ export default function MessageBubble({
               </span>
               {message.sourcesCached ? (
                 <span
-                  title="Retrieved from semantic cache"
+                  title="Retrieved from semantic cache (cache hit)"
                   className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300"
                 >
                   <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                  cached
+                  cache hit
                 </span>
               ) : null}
             </div>
