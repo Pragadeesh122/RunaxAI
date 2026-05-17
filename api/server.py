@@ -5,6 +5,7 @@ import logging
 import os
 import time
 import uuid
+from urllib.parse import quote
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Depends, Request, Response, UploadFile, File
@@ -465,10 +466,16 @@ def chat_attachment_file(
             response.close()
             response.release_conn()
 
-    safe_name = (filename or "attachment").replace('"', "")
+    # HTTP headers must be ASCII. RFC 5987 filename* carries the real (possibly
+    # Unicode) name; filename="" stays as an ASCII fallback for ancient clients.
+    raw_name = filename or "attachment"
+    ascii_fallback = raw_name.encode("ascii", "replace").decode("ascii").replace('"', "")
+    encoded_name = quote(raw_name, safe="")
     headers = {
         "Content-Length": str(stat.size),
-        "Content-Disposition": f'inline; filename="{safe_name}"',
+        "Content-Disposition": (
+            f'inline; filename="{ascii_fallback}"; filename*=UTF-8\'\'{encoded_name}'
+        ),
         "Cache-Control": "private, max-age=300",
     }
     return StreamingResponse(
