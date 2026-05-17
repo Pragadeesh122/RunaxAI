@@ -69,7 +69,9 @@ def build_index(documents: list[dict]):
 
 def query_local_kb(query: str) -> list:
     if not os.path.exists(INDEX_PATH):
-        return [{"error": "No local knowledge base found. Please build the index first."}]
+        raise RuntimeError(
+            "No local knowledge base found. Please build the index first."
+        )
 
     try:
         index = faiss.read_index(INDEX_PATH)
@@ -81,24 +83,22 @@ def query_local_kb(query: str) -> list:
                 documents = metadata.get("documents", [])
     except Exception as e:
         logger.error(f"failed to load index/metadata: {e}")
-        return [{"error": f"Failed to load knowledge base: {e}"}]
+        raise RuntimeError(f"Failed to load knowledge base: {e}") from e
 
     try:
         response = llm_client.embeddings.create(input=query, model=EMBEDDING_MODEL)
         query_vector = np.array([extract_first_embedding(response)], dtype=np.float32)
         if index.d != query_vector.shape[1]:
-            return [
-                {
-                    "error": (
-                        f"Embedding dimension mismatch: index={index.d}, "
-                        f"query={query_vector.shape[1]}. "
-                        "Rebuild the local index for the active embedding model."
-                    )
-                }
-            ]
+            raise RuntimeError(
+                f"Embedding dimension mismatch: index={index.d}, "
+                f"query={query_vector.shape[1]}. "
+                "Rebuild the local index for the active embedding model."
+            )
+    except RuntimeError:
+        raise
     except Exception as e:
         logger.error(f"embedding failed: {e}")
-        return [{"error": f"Embedding failed: {e}"}]
+        raise RuntimeError(f"Embedding failed: {e}") from e
 
     distances, indices = index.search(query_vector, k=5)
 

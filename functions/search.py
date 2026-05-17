@@ -45,7 +45,7 @@ def search(query: str) -> str:
     api_key = os.getenv("BRAVE_API_KEY")
     if not api_key:
         logger.error("BRAVE_API_KEY not set")
-        return "Search failed: BRAVE_API_KEY not configured."
+        raise RuntimeError("Search unavailable: BRAVE_API_KEY not configured")
 
     try:
         response = requests.get(
@@ -55,12 +55,12 @@ def search(query: str) -> str:
             timeout=10,
         )
         response.raise_for_status()
-    except requests.Timeout:
+    except requests.Timeout as e:
         logger.error(f"brave search timed out for: '{query}'")
-        return "Search failed: request timed out."
+        raise RuntimeError("Search timed out") from e
     except requests.RequestException as e:
         logger.error(f"brave search request failed: {e}")
-        return f"Search failed: {e}"
+        raise RuntimeError(f"Search request failed: {e}") from e
 
     searchResponse = response.json().get("web", {}).get("results", [])
 

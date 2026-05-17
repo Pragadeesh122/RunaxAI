@@ -51,14 +51,14 @@ def portfolio(query: str) -> list:
         query_vector = extract_first_embedding(embedding)
     except Exception as e:
         logger.error(f"embedding failed: {e}")
-        return [{"error": f"Embedding failed: {e}"}]
+        raise RuntimeError(f"Embedding failed: {e}") from e
 
     try:
         index = pinecone_client.Index("pragadeesh")
         results = index.query(vector=query_vector, top_k=5, include_metadata=True)
     except Exception as e:
         logger.error(f"pinecone query failed: {e}")
-        return [{"error": f"Pinecone query failed: {e}"}]
+        raise RuntimeError(f"Pinecone query failed: {e}") from e
 
     cleaned_result = []
     for result in results["matches"]:
