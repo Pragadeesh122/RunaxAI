@@ -13,6 +13,11 @@ from observability.spans import ingestion_span
 
 logger = logging.getLogger("pipeline.ingestion")
 
+# Pinecone allows 40KB per metadata field, but we cap text at 8000 chars to
+# keep payloads small. If a chunk exceeds this, retrieved text will be a
+# silent suffix-truncation of what was embedded — worth knowing about.
+METADATA_TEXT_LIMIT = 8000
+
 
 def ingest_document(
     object_key: str,
@@ -81,10 +86,15 @@ def ingest_document(
             # 4. Build vectors with metadata (Pinecone rejects null values)
             vectors = []
             running_offset = 0
+            truncated_count = 0
             for i, chunk in enumerate(chunks):
                 vector_id = f"{document_id}_{i}"
+                chunk_text = chunk["text"]
+                if len(chunk_text) > METADATA_TEXT_LIMIT:
+                    truncated_count += 1
+                    chunk_text = chunk_text[:METADATA_TEXT_LIMIT]
                 metadata = {
-                    "text": chunk["text"][:8000],  # Pinecone allows 40KB per field
+                    "text": chunk_text,
                     "source": chunk["source"],
                     "chunk_index": chunk["chunk_index"],
                     "start_index": running_offset,
@@ -102,6 +112,13 @@ def ingest_document(
                     "metadata": metadata,
                 })
                 running_offset += len(chunk["text"])
+
+            if truncated_count:
+                logger.warning(
+                    f"truncated {truncated_count}/{len(chunks)} chunks "
+                    f"to {METADATA_TEXT_LIMIT} chars for Pinecone metadata "
+                    "— retrieved text will be a suffix-truncated copy of the embedded text"
+                )
 
             # 5. Upsert to Pinecone
             with ingestion_span(span_name="ingestion.upsert"):
