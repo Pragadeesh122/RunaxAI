@@ -128,11 +128,11 @@ add a parser and a component to match.
 The point of "adaptive retrieval" is that the right pipeline for a 50-page
 corpus is not the right pipeline for a 50,000-chunk corpus.
 
-| Corpus size      | Mode               | Alpha | Top K    | Rerank |
+| Range            | Strategy           | Alpha | Top K    | Rerank |
 |------------------|--------------------|-------|----------|--------|
-| < 500 chunks     | Dense only         | 1.0   | 5        | No     |
-| 500 – 10K        | Hybrid dense+sparse| 0.7   | 10       | No     |
-| > 10K            | Hybrid + rerank    | 0.5   | 20 → 10  | Yes    |
+| &lt; 500 chunks  | Dense only         | 1.0   | 5        | No     |
+| 500 – 10K        | Hybrid             | 0.7   | 10       | Yes    |
+| &gt; 10K         | Hybrid + rerank    | 0.5   | 20 → 10  | Yes    |
 
 A small project doesn't benefit from sparse vectors — semantic search alone
 finds the right chunk. A medium project starts missing exact keyword matches

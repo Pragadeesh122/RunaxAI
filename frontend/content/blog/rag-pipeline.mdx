@@ -41,9 +41,9 @@ def get_retrieval_config(chunk_count: int) -> dict:
         return {"alpha": 0.5, "top_k": 20, "rerank": True}
 ```
 
-- **Small Corpora (<500 chunks):** We rely 100% on dense vectors (`alpha: 1.0`) because the search space is small enough that semantic search easily surfaces the right content.
-- **Medium Corpora (<10,000 chunks):** We blend sparse and dense (`alpha: 0.7`), giving a slight edge to semantic meaning while respecting keywords.
-- **Large Corpora (>10,000 chunks):** The search space is massive. We rely heavily on sparse matching (`alpha: 0.5`) to act as a strict filter for exact terms before considering semantic similarity.
+- **Small Corpora (&lt;500 chunks):** We rely 100% on dense vectors (`alpha: 1.0`) because the search space is small enough that semantic search easily surfaces the right content.
+- **Medium Corpora (&lt;10,000 chunks):** We blend sparse and dense (`alpha: 0.7`), giving a slight edge to semantic meaning while respecting keywords.
+- **Large Corpora (&gt;10,000 chunks):** The search space is massive. We rely heavily on sparse matching (`alpha: 0.5`) to act as a strict filter for exact terms before considering semantic similarity.
 
 ## 4. HyDE (Hypothetical Document Embeddings)
 
