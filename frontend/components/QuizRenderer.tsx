@@ -101,7 +101,7 @@ function QuestionCard({
   return (
     <div className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden">
       <div className="px-4 py-3 border-b border-white/5 flex items-center gap-3">
-        <span className="shrink-0 w-6 h-6 rounded-full bg-violet-600/20 text-violet-400 text-xs font-medium flex items-center justify-center">
+        <span className="shrink-0 w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 text-xs font-medium flex items-center justify-center">
           {index + 1}
         </span>
         <span className="text-sm font-medium text-zinc-200">{q.question}</span>
@@ -115,7 +115,7 @@ function QuestionCard({
             onChange={(e) => handleShortAnswer(e.target.value)}
             disabled={revealed}
             placeholder="Type your answer..."
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-violet-500/50 disabled:opacity-50"
+            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-emerald-500/50 disabled:opacity-50"
           />
         ) : (
           (q.options ?? []).map((opt) => {
@@ -132,7 +132,7 @@ function QuestionCard({
             } else if (revealed && isSelected && !isAnswer) {
               style = "border-red-500/30 bg-red-500/10";
             } else if (isSelected) {
-              style = "border-violet-500/30 bg-violet-500/10";
+              style = "border-emerald-500/30 bg-emerald-500/10";
             }
 
             return (
@@ -154,7 +154,7 @@ function QuestionCard({
           <button
             onClick={handleReveal}
             disabled={q.type === "short_answer" ? !shortAnswer.trim() : !selected}
-            className="text-xs font-medium text-violet-400 hover:text-violet-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+            className="text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
           >
             Reveal answer
           </button>

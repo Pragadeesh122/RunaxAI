@@ -80,7 +80,7 @@ function CallbackHandler() {
   return (
     <div className='relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden bg-black/90 text-zinc-200'>
       <div className='relative z-10 flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-[#1b1d21]/90 px-8 py-7 backdrop-blur'>
-        <div className='h-9 w-9 rounded-full border-2 border-zinc-700 border-t-violet-400 animate-spin' />
+        <div className='h-9 w-9 rounded-full border-2 border-zinc-700 border-t-emerald-400 animate-spin' />
         <p className='text-sm text-zinc-300'>Signing you in...</p>
       </div>
     </div>
@@ -93,7 +93,7 @@ export default function CallbackPage() {
       fallback={
         <div className='relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden bg-black/90 text-zinc-200'>
           <div className='relative z-10 flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-[#1b1d21]/90 px-8 py-7 backdrop-blur'>
-            <div className='h-9 w-9 rounded-full border-2 border-zinc-700 border-t-violet-400 animate-spin' />
+            <div className='h-9 w-9 rounded-full border-2 border-zinc-700 border-t-emerald-400 animate-spin' />
             <p className='text-sm text-zinc-300'>Signing you in...</p>
           </div>
         </div>

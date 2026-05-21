@@ -43,7 +43,7 @@ export default function SidebarAccountFooter({
             className="h-9 w-9 rounded-full border border-white/10 object-cover"
           />
         ) : (
-          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-violet-400/20 bg-violet-500/15 text-sm font-medium text-violet-200">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/15 text-sm font-medium text-emerald-200">
             {getInitial(user)}
           </div>
         )}
@@ -59,7 +59,7 @@ export default function SidebarAccountFooter({
           aria-current={isSettingsPage ? "page" : undefined}
           className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
             isSettingsPage
-              ? "border-violet-400/30 bg-violet-500/18 text-violet-100"
+              ? "border-emerald-400/30 bg-emerald-500/18 text-emerald-100"
               : "border-white/8 bg-white/3 text-zinc-300 hover:bg-white/6 hover:text-zinc-100"
           }`}
         >
