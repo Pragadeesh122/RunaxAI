@@ -108,7 +108,7 @@ function AttachmentChips({ attachments, onOpen }: AttachmentChipsProps) {
             type="button"
             onClick={() => onOpen(att)}
             aria-label={`Open ${att.filename}`}
-            className="group flex items-center gap-2 p-1 pr-2.5 rounded-xl bg-violet-600/10 border border-violet-500/15 hover:bg-violet-600/20 hover:border-violet-500/30 transition-colors"
+            className="group flex items-center gap-2 p-1 pr-2.5 rounded-xl bg-white/[0.04] border border-white/8 hover:bg-white/[0.07] hover:border-white/12 transition-colors active:scale-[0.98]"
           >
             {isImg ? (
               <AttachmentImageThumb attachment={att} />
@@ -228,7 +228,7 @@ return (
             relative text-sm leading-relaxed
             ${
               isUser
-                ? "max-w-[80%] bg-violet-600/15 border border-violet-500/10 text-zinc-100 rounded-2xl rounded-br-sm px-4 py-3"
+                ? "max-w-[80%] bg-white/[0.04] border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md text-zinc-100 rounded-2xl rounded-br-sm px-4 py-3"
                 : "w-full text-zinc-200"
             }
             ${!isUser && message.thinkingEntries.length > 0 && displayContent ? "animate-content-in" : ""}
@@ -239,9 +239,9 @@ return (
             </p>
           ) : isStructuredAgent && isStreaming ? (
             <div className='flex items-center gap-2 py-2'>
-              <span className='w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse' />
+              <span className='w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse' />
               <span className='text-sm text-zinc-400'>
-                Generating {message.agentName === "quiz" ? "quiz" : "visualization"}...
+                Generating {message.agentName === "quiz" ? "quiz" : "visualization"}…
               </span>
             </div>
           ) : structuredType === "quiz" ? (
@@ -274,7 +274,7 @@ return (
             className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
           >
             <div className="flex min-w-0 items-center gap-2">
-              <FileText size={15} className="text-violet-300" />
+              <FileText size={15} className="text-emerald-400/80" />
               <span className="text-xs font-medium text-zinc-300">
                 Sources
               </span>
@@ -344,17 +344,17 @@ return (
         message.thinkingEntries.length === 0 && (
           <div className='flex items-center gap-1.5 py-1'>
             <span
-              className='w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse'
+              className='w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'
               style={{animationDelay: "0ms"}}
               aria-hidden='true'
             />
             <span
-              className='w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse'
+              className='w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'
               style={{animationDelay: "150ms"}}
               aria-hidden='true'
             />
             <span
-              className='w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse'
+              className='w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'
               style={{animationDelay: "300ms"}}
               aria-hidden='true'
             />

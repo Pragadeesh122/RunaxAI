@@ -7,7 +7,6 @@ import { Stop } from '@phosphor-icons/react/dist/ssr/Stop';
 import { Paperclip } from '@phosphor-icons/react/dist/ssr/Paperclip';
 import { X } from '@phosphor-icons/react/dist/ssr/X';
 import { FileText } from '@phosphor-icons/react/dist/ssr/FileText';
-import { CircleNotch } from '@phosphor-icons/react/dist/ssr/CircleNotch';
 import {
   CHAT_ATTACHMENT_MAX_BYTES,
   CHAT_ATTACHMENT_MAX_COUNT,
@@ -281,16 +280,16 @@ export default function ChatInput({
           bg-white/5
           transition-colors duration-200
           ${isDragging
-            ? 'border-violet-500/60 bg-violet-500/5'
+            ? 'border-emerald-400/60 bg-emerald-500/5'
             : isStreaming || disabled
               ? 'border-white/8'
-              : 'border-white/10 focus-within:border-violet-500/30'
+              : 'border-white/10 focus-within:border-emerald-400/40'
           }
         `}
       >
         {isDragging && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-violet-500/5 border border-dashed border-violet-500/40 pointer-events-none">
-            <span className="text-xs text-violet-300">Drop to attach</span>
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-emerald-500/5 border border-dashed border-emerald-400/40 pointer-events-none">
+            <span className="text-xs text-emerald-300">Drop to attach</span>
           </div>
         )}
 
@@ -323,10 +322,10 @@ export default function ChatInput({
             {pendingUploads.map((up) => (
               <div
                 key={up.localId}
-                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs"
+                className="relative overflow-hidden flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs"
               >
-                <span className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-violet-300 animate-spin">
-                  <CircleNotch size={14} aria-hidden="true" />
+                <span className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-zinc-400">
+                  <FileText size={14} aria-hidden="true" />
                 </span>
                 <span className="max-w-[180px] truncate text-zinc-300" title={up.file.name}>
                   {up.file.name}
@@ -334,6 +333,11 @@ export default function ChatInput({
                 <span className="text-zinc-500 text-[10px]">
                   {formatBytes(up.file.size)}
                 </span>
+                {/* Skeleton shimmer — replaces circular spinner (skill §3 R5 + §8) */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 w-1/3 bg-linear-to-r from-transparent via-white/10 to-transparent animate-skeleton pointer-events-none"
+                />
               </div>
             ))}
           </div>
@@ -389,9 +393,9 @@ export default function ChatInput({
                 onClick={() => canSubmit && onSubmit()}
                 disabled={!canSubmit}
                 aria-label="Send message"
-                className={`transition-colors duration-150 ${
+                className={`transition-[transform,color] duration-150 active:scale-[0.92] ${
                   canSubmit
-                    ? 'text-violet-400 hover:text-violet-300'
+                    ? 'text-emerald-400 hover:text-emerald-300'
                     : 'text-zinc-700 cursor-not-allowed'
                 }`}
               >
