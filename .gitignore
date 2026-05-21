@@ -36,6 +36,7 @@ CLAUDE.md
 .playwright-mcp
 screenshots
 test-screenshots
+design_audit_screenshots/
 
 # Eval reports (generated)
 evals/reports/helm/values-secrets.yaml
