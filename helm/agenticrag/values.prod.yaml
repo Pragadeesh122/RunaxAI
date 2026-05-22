@@ -68,6 +68,58 @@ minio:
           - storage.runaxai.com
 
 # ---------------------------------------------------------------------------
+# Scaling — 2 replicas of stateless services for zero-downtime deploys and
+# crash resilience. Stateful services (postgres/redis/minio) stay at 1.
+# HPA stays off until metrics-server is installed.
+# Pod anti-affinity is "preferred" (no-op on the 1-node cluster today;
+# auto-spreads once a 2nd node is added).
+# ---------------------------------------------------------------------------
+api:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: agenticrag
+                app.kubernetes.io/component: api
+
+worker:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: agenticrag
+                app.kubernetes.io/component: worker
+
+frontend:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: agenticrag
+                app.kubernetes.io/component: frontend
+
+# ---------------------------------------------------------------------------
 # Non-sensitive config — production URLs
 # ---------------------------------------------------------------------------
 config:
