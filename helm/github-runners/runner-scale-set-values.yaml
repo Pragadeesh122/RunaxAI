@@ -12,8 +12,8 @@ runnerScaleSetName: "agenticrag-runners"
 # Optional runner group in GitHub. Leave Default unless you already manage groups.
 runnerGroup: "Default"
 
-# Start at zero idle runners and burst on demand.
-minRunners: 0
+# Keep one warm runner so deploys don't pay cold-start; burst up to 5.
+minRunners: 1
 maxRunners: 5
 
 # Use GitHub's default Docker-in-Docker runner mode first.

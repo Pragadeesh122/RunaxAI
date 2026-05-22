@@ -26,6 +26,7 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      helm: ${{ steps.filter.outputs.helm }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
@@ -50,6 +51,9 @@ jobs:
               - '.github/workflows/pr.yml'
             frontend:
               - 'frontend/**'
+              - '.github/workflows/pr.yml'
+            helm:
+              - 'helm/agenticrag/**'
               - '.github/workflows/pr.yml'
 
   # ---------------------------------------------------------------------------
@@ -120,3 +124,59 @@ jobs:
           platforms: linux/arm64
           build-args: NEXT_PUBLIC_API_URL=https://api.runaxai.com
           cache-from: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache
+
+  # ---------------------------------------------------------------------------
+  # Helm chart validation — lints templates and renders the prod overlay so
+  # bad values land at PR review time, not at deploy time.
+  # ---------------------------------------------------------------------------
+  helm-lint:
+    name: Helm chart lint
+    needs: changes
+    if: needs.changes.outputs.helm == 'true'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install helm
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \
+            | DESIRED_VERSION=v3.16.4 bash
+
+      - name: helm lint (chart defaults)
+        run: helm lint helm/agenticrag/
+
+      # Render with prod overlay + stubbed required secrets so the templates
+      # actually fully evaluate. We do NOT push or apply anything — pure
+      # client-side render. The grep at the end is a regression test on the
+      # apiImage / frontendImage helpers (digest path).
+      - name: helm template (prod overlay, stubbed secrets)
+        run: |
+          helm template ci helm/agenticrag/ \
+            -f helm/agenticrag/values.yaml \
+            -f helm/agenticrag/values.prod.yaml \
+            --set secrets.minioAccessKey=x \
+            --set secrets.minioSecretKey=x \
+            --set secrets.dbAdminPassword=x \
+            --set secrets.dbPassword=x \
+            --set secrets.secretKey=x \
+            --set api.image.repository=ghcr.io/test/api \
+            --set api.image.digest=sha256:deadbeef \
+            --set frontend.image.repository=ghcr.io/test/frontend \
+            --set frontend.image.digest=sha256:cafef00d \
+            > /tmp/rendered.yaml
+          echo "rendered $(wc -l < /tmp/rendered.yaml) lines"
+
+      - name: Verify digest path renders correctly
+        run: |
+          if ! grep -q "image: ghcr.io/test/api@sha256:deadbeef" /tmp/rendered.yaml; then
+            echo "API image is not rendering with the digest form — apiImage helper regressed."
+            exit 1
+          fi
+          if ! grep -q "image: ghcr.io/test/frontend@sha256:cafef00d" /tmp/rendered.yaml; then
+            echo "Frontend image is not rendering with the digest form — frontendImage helper regressed."
+            exit 1
+          fi
+          echo "digest-form images present"
