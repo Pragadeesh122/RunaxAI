@@ -47,14 +47,23 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Image tag: use .Values.<component>.image.tag if set, else Chart.AppVersion.
+Image reference: digest takes precedence over tag for content-addressed deploys.
+Falls back to tag, then Chart.AppVersion, for backwards compatibility.
 */}}
 {{- define "agenticrag.apiImage" -}}
+{{- if .Values.api.image.digest -}}
+{{ .Values.api.image.repository }}@{{ .Values.api.image.digest }}
+{{- else -}}
 {{ .Values.api.image.repository }}:{{ .Values.api.image.tag | default .Chart.AppVersion }}
+{{- end -}}
 {{- end }}
 
 {{- define "agenticrag.frontendImage" -}}
+{{- if .Values.frontend.image.digest -}}
+{{ .Values.frontend.image.repository }}@{{ .Values.frontend.image.digest }}
+{{- else -}}
 {{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}
+{{- end -}}
 {{- end }}
 
 {{/* ------------------------------------------------------------------- */}}

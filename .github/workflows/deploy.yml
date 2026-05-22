@@ -3,48 +3,56 @@ name: Build & Deploy
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
 
-# One deploy at a time; cancel any in-flight run when a new commit lands.
+permissions:
+  contents: read
+
 concurrency:
   group: deploy
   cancel-in-progress: true
 
 env:
-  # GHCR requires lowercase; hardcode rather than relying on github.repository_owner
-  # which preserves the original casing of "Pragadeesh122".
   API_IMAGE: ghcr.io/pragadeesh122/agenticrag-api
   FRONTEND_IMAGE: ghcr.io/pragadeesh122/agenticrag-frontend
 
 jobs:
   # ---------------------------------------------------------------------------
-  # 1. Build Docker images and push to GHCR
+  # Build API on GitHub-hosted arm64. Push by tag AND emit digest output.
   # ---------------------------------------------------------------------------
-  build-push:
-    name: Build & Push
-    runs-on: agenticrag-runners
+  build-api:
+    name: Build & push API
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     outputs:
       tag: ${{ steps.tag.outputs.value }}
-
+      digest: ${{ steps.build.outputs.digest }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Compute image tag
         id: tag
         run: echo "value=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push API
-        uses: docker/build-push-action@v5
+      - id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: Dockerfile
@@ -55,24 +63,71 @@ jobs:
             ${{ env.API_IMAGE }}:latest
           cache-from: type=registry,ref=${{ env.API_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.API_IMAGE }}:buildcache,mode=max
+          provenance: true
+          sbom: true
 
+      # Advisory scan; SARIF uploaded to Security tab. Non-blocking so a newly
+      # published CVE doesn't break deploys. Add a nightly job for hard-fail.
       - name: Scan API image (Trivy)
-        uses: aquasecurity/trivy-action@v0.36.0
-        env:
-          # Image is built linux/arm64 only; trivy defaults to amd64 when pulling
-          # from a remote registry, which fails with "no child with platform".
-          TRIVY_PLATFORM: linux/arm64
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
-          image-ref: ${{ env.API_IMAGE }}:${{ steps.tag.outputs.value }}
-          severity: CRITICAL
-          exit-code: '1'
+          image-ref: ${{ env.API_IMAGE }}@${{ steps.build.outputs.digest }}
+          severity: CRITICAL,HIGH
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: os,library
-          format: table
+          format: sarif
+          output: trivy-api.sarif
           trivyignores: .trivyignore
 
-      - name: Build & push frontend
-        uses: docker/build-push-action@v5
+      - name: Upload Trivy SARIF (API)
+        if: always()
+        uses: github/codeql-action/upload-sarif@458d36d7d4f47d0dd16ca424c1d3cda0060f1360 # v3
+        with:
+          sarif_file: trivy-api.sarif
+          category: trivy-api
+
+      - name: Attest build provenance (API)
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-name: ${{ env.API_IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  # ---------------------------------------------------------------------------
+  # Build frontend in parallel with API.
+  # ---------------------------------------------------------------------------
+  build-frontend:
+    name: Build & push frontend
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Compute image tag
+        id: tag
+        run: echo "value=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: frontend
           file: frontend/Dockerfile
@@ -84,32 +139,50 @@ jobs:
           build-args: NEXT_PUBLIC_API_URL=https://api.runaxai.com
           cache-from: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache,mode=max
+          provenance: true
+          sbom: true
 
       - name: Scan frontend image (Trivy)
-        uses: aquasecurity/trivy-action@v0.36.0
-        env:
-          TRIVY_PLATFORM: linux/arm64
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
-          image-ref: ${{ env.FRONTEND_IMAGE }}:${{ steps.tag.outputs.value }}
-          severity: CRITICAL
-          exit-code: '1'
+          image-ref: ${{ env.FRONTEND_IMAGE }}@${{ steps.build.outputs.digest }}
+          severity: CRITICAL,HIGH
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: os,library
-          format: table
+          format: sarif
+          output: trivy-frontend.sarif
           trivyignores: .trivyignore
 
+      - name: Upload Trivy SARIF (frontend)
+        if: always()
+        uses: github/codeql-action/upload-sarif@458d36d7d4f47d0dd16ca424c1d3cda0060f1360 # v3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend
+
+      - name: Attest build provenance (frontend)
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-name: ${{ env.FRONTEND_IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
   # ---------------------------------------------------------------------------
-  # 2. Deploy to K3s via Helm
-  #    Secrets live in a K8s Secret on the Mac mini (never stored in GitHub).
-  #    Runner pod has in-cluster RBAC — see helm/github-runners/rbac.yaml.
+  # Deploy to K3s via Helm — ONLY job that runs on the Mac mini.
+  # Pins images by digest, not tag.
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy
     runs-on: agenticrag-runners
-    needs: build-push
-
+    needs: [build-api, build-frontend]
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Install helm
         run: |
@@ -125,15 +198,17 @@ jobs:
             chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
           fi
 
-      # Pull the Helm secrets file out of K8s — it was loaded once from the Mac mini
-      # with: kubectl create secret generic helm-values-secrets \
-      #         --from-file=values-secrets.yaml=helm/values-secrets.yaml -n arc-runners
       - name: Extract helm secrets
         run: |
           kubectl get secret helm-values-secrets -n arc-runners \
             -o jsonpath='{.data.values-secrets\.yaml}' | base64 -d > /tmp/values-secrets.yaml
 
-      - name: Helm upgrade
+      - name: Helm upgrade (digest-pinned)
+        env:
+          API_DIGEST: ${{ needs.build-api.outputs.digest }}
+          FRONTEND_DIGEST: ${{ needs.build-frontend.outputs.digest }}
+          API_TAG: ${{ needs.build-api.outputs.tag }}
+          FRONTEND_TAG: ${{ needs.build-frontend.outputs.tag }}
         run: |
           helm upgrade --install agenticrag ./helm/agenticrag \
             --namespace agenticrag \
@@ -141,21 +216,20 @@ jobs:
             -f helm/agenticrag/values.yaml \
             -f helm/agenticrag/values.prod.yaml \
             -f /tmp/values-secrets.yaml \
-            --set "api.image.repository=${{ env.API_IMAGE }}" \
-            --set "api.image.tag=${{ needs.build-push.outputs.tag }}" \
-            --set "api.image.pullPolicy=Always" \
-            --set "frontend.image.repository=${{ env.FRONTEND_IMAGE }}" \
-            --set "frontend.image.tag=${{ needs.build-push.outputs.tag }}" \
-            --set "frontend.image.pullPolicy=Always" \
+            --set "api.image.repository=${API_IMAGE}" \
+            --set "api.image.tag=${API_TAG}" \
+            --set "api.image.digest=${API_DIGEST}" \
+            --set "api.image.pullPolicy=IfNotPresent" \
+            --set "frontend.image.repository=${FRONTEND_IMAGE}" \
+            --set "frontend.image.tag=${FRONTEND_TAG}" \
+            --set "frontend.image.digest=${FRONTEND_DIGEST}" \
+            --set "frontend.image.pullPolicy=IfNotPresent" \
             --atomic \
             --timeout 10m
 
-      # Catches ingress / cert / DNS regressions that pass pod readiness.
-      # Retries because cert-manager and ingress can lag a few seconds behind
-      # the Helm release going Ready.
       - name: Smoke test
         run: |
-          for i in 1 2 3 4 5; do
+          for i in 1 2 3 4 5 6 7 8 9 10; do
             if curl -fsS --max-time 10 https://api.runaxai.com/health; then
               echo "smoke test passed"
               exit 0
@@ -163,36 +237,40 @@ jobs:
             echo "attempt $i failed, retrying in 6s..."
             sleep 6
           done
-          echo "smoke test failed after 5 attempts"
+          echo "smoke test failed after 10 attempts"
           exit 1
 
   # ---------------------------------------------------------------------------
-  # 3. Notify on failure (runs on GitHub-hosted runner so it still fires
-  #    even if the Mac mini is offline / runners are down).
+  # Notify on failure (GitHub-hosted so it fires even if Mac mini is down).
   # ---------------------------------------------------------------------------
   notify-failure:
     name: Notify on failure
     runs-on: ubuntu-latest
-    needs: [build-push, deploy]
+    needs: [build-api, build-frontend, deploy]
     if: failure()
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+          ACTOR: ${{ github.actor }}
         with:
           script: |
-            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const sha = context.sha.substring(0, 7);
+            const sha = (process.env.SHA || '').substring(0, 7);
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Deploy failed: ${sha}`,
               body: [
-                `**Commit:** ${context.sha}`,
-                `**Run:** ${run}`,
-                `**Branch:** ${context.ref}`,
+                `**Commit:** ${process.env.SHA}`,
+                `**Run:** ${process.env.RUN_URL}`,
+                `**Branch:** ${process.env.REF}`,
                 ``,
-                `Triggered by @${context.actor}.`
+                `Triggered by @${process.env.ACTOR}.`
               ].join('\n'),
               labels: ['deploy-failure']
             });

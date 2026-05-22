@@ -3,6 +3,13 @@ name: PR Validation
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/ISSUE_TEMPLATE/**'
+
+permissions:
+  contents: read
 
 concurrency:
   group: pr-${{ github.ref }}
@@ -10,55 +17,92 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Detect what changed so downstream jobs can skip when untouched.
+  # ---------------------------------------------------------------------------
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 2
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - 'agents/**'
+              - 'pipeline/**'
+              - 'functions/**'
+              - 'memory/**'
+              - 'services/**'
+              - 'database/**'
+              - 'prompts/**'
+              - 'tasks/**'
+              - 'observability/**'
+              - 'alembic/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'Dockerfile'
+              - '.github/workflows/pr.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/pr.yml'
+
+  # ---------------------------------------------------------------------------
   # API tests — sqlite in-memory fixtures, no external deps required.
   # ---------------------------------------------------------------------------
   test-api:
     name: API tests
-    runs-on: agenticrag-runners
-
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          python-version: '3.12'
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Install dependencies
-        run: uv sync --frozen
-
-      - name: Run pytest
-        run: uv run pytest
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv sync --frozen
+      - run: uv run pytest
 
   # ---------------------------------------------------------------------------
   # Sanity-build both images on PR (no push, no deploy). Catches Dockerfile
-  # regressions before merge. Reuses the registry buildcache so it's fast.
+  # regressions before merge. Uses registry buildcache.
   # ---------------------------------------------------------------------------
   build:
     name: Build images
-    runs-on: agenticrag-runners
+    needs: changes
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: read
     env:
       API_IMAGE: ghcr.io/pragadeesh122/agenticrag-api
       FRONTEND_IMAGE: ghcr.io/pragadeesh122/agenticrag-frontend
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build API
-        uses: docker/build-push-action@v5
+        if: needs.changes.outputs.api == 'true'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: Dockerfile
@@ -67,7 +111,8 @@ jobs:
           cache-from: type=registry,ref=${{ env.API_IMAGE }}:buildcache
 
       - name: Build frontend
-        uses: docker/build-push-action@v5
+        if: needs.changes.outputs.frontend == 'true'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: frontend
           file: frontend/Dockerfile

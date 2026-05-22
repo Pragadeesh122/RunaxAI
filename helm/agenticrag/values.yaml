@@ -20,6 +20,7 @@ api:
   image:
     repository: agenticrag-api
     tag: ""  # defaults to Chart.appVersion
+    digest: ""  # if set (sha256:...), overrides tag for content-addressed deploys
     pullPolicy: IfNotPresent
   replicaCount: 1
   uvicornWorkers: 2
@@ -80,6 +81,7 @@ frontend:
   image:
     repository: agenticrag-frontend
     tag: ""  # defaults to Chart.appVersion
+    digest: ""  # if set (sha256:...), overrides tag for content-addressed deploys
     pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
