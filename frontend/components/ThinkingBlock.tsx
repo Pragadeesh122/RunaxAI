@@ -49,7 +49,7 @@ export default function ThinkingBlock({
             <Sparkle
               size={14}
               weight="fill"
-              className="text-violet-400 animate-pulse"
+              className="text-emerald-400 animate-pulse"
             />
             <span className="text-xs text-zinc-400 font-medium">
               Thinking...
@@ -83,7 +83,7 @@ export default function ThinkingBlock({
                 {tool.status === 'running' && (
                   <CircleNotch
                     size={13}
-                    className="text-violet-400 animate-spin shrink-0"
+                    className="text-emerald-400 animate-spin shrink-0"
                   />
                 )}
                 {tool.status === 'done' && (

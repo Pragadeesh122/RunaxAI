@@ -192,7 +192,7 @@ export default function MermaidDiagram({ code }: MermaidDiagramProps) {
   if (!svg) {
     return (
       <div className="flex items-center gap-2 py-3">
-        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         <span className="text-sm text-zinc-400">Rendering diagram...</span>
       </div>
     );

@@ -91,7 +91,7 @@ function SessionGroup({ label, sessions, activeSessionId, onSelect, onDelete }: 
               className={`
                 w-full text-left px-3 py-2.5 rounded-lg text-sm truncate transition-colors duration-150
                 ${activeSessionId === s.id
-                  ? 'bg-violet-500/20 text-zinc-100'
+                  ? 'bg-emerald-500/15 text-zinc-100 border-l-2 border-emerald-400'
                   : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
                 }
               `}
@@ -167,7 +167,7 @@ export default function Sidebar({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-linear-to-br from-violet-600/30 to-purple-600/30 border border-violet-500/20 flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-linear-to-br from-emerald-500/20 to-emerald-400/10 border border-emerald-400/25 flex items-center justify-center shrink-0">
             <RunaxLogo size={22} />
           </div>
           <span className="text-sm font-semibold text-zinc-200 tracking-tight">RunaxAI</span>
@@ -212,7 +212,7 @@ export default function Sidebar({
                   }
                 }}
                 placeholder="Project name..."
-                className="w-full px-2.5 py-1.5 text-sm bg-white/5 border border-white/10 rounded-lg text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/30"
+                className="w-full px-2.5 py-1.5 text-sm bg-white/5 border border-white/10 rounded-lg text-zinc-200 placeholder-zinc-600 outline-none focus:border-emerald-400/40"
               />
             </div>
           )}
@@ -224,7 +224,7 @@ export default function Sidebar({
                   href={`/projects/${p.id}`}
                   className="flex items-center gap-2 w-full text-left px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors duration-150"
                 >
-                  <FolderSimple size={16} className="text-violet-400/70 shrink-0" aria-hidden="true" />
+                  <FolderSimple size={16} className="text-emerald-400/70 shrink-0" aria-hidden="true" />
                   <span className="truncate">{p.name}</span>
                   <span className="ml-auto text-[11px] text-zinc-600 shrink-0">
                     {p.documents.length}

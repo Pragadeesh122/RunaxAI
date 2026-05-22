@@ -688,6 +688,15 @@ textarea {
   animation: shimmer 4s linear infinite;
 }
 
+/* Neutral overlay shimmer for skeleton loaders (skill §3 R5 + §8). */
+@keyframes skeletonSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.animate-skeleton {
+  animation: skeletonSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 .animate-fade-in-up {
   animation: fadeInUp 0.7s ease-out forwards;
 }

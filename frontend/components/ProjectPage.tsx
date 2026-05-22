@@ -974,7 +974,7 @@ export default function ProjectPage({
               {project.name}
             </span>
             {selectedAgent && (
-              <span className='ml-2 px-2 py-0.5 text-[11px] rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/20 capitalize'>
+              <span className='ml-2 px-2 py-0.5 text-[11px] rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 capitalize'>
                 {selectedAgent}
               </span>
             )}

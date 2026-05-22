@@ -21,12 +21,12 @@ const SUGGESTIONS: SuggestionCard[] = [
   {
     label: 'Search the knowledge base',
     query: 'Search the knowledge base for information about ',
-    icon: <BookOpenText size={20} className="text-violet-400" aria-hidden="true" />,
+    icon: <BookOpenText size={20} className="text-emerald-400" aria-hidden="true" />,
   },
   {
     label: 'Query the database',
     query: 'Query the database to show me ',
-    icon: <Table size={20} className="text-blue-400" aria-hidden="true" />,
+    icon: <Table size={20} className="text-emerald-400" aria-hidden="true" />,
   },
   {
     label: 'Browse the web',
@@ -36,11 +36,12 @@ const SUGGESTIONS: SuggestionCard[] = [
   {
     label: 'What can you do?',
     query: 'What tools and capabilities do you have?',
-    icon: <Sparkle size={20} className="text-amber-400" aria-hidden="true" />,
+    icon: <Sparkle size={20} className="text-emerald-400/80" aria-hidden="true" />,
   },
 ];
 
-// RunaxAI logo: interconnected network graph with central pulse spark
+// RunaxAI logo: interconnected network graph with central pulse spark.
+// Emerald palette to match locked brand accent (skill §3 Rule 2).
 export function RunaxLogo({ size = 40 }: { size?: number }) {
   return (
     <svg
@@ -51,30 +52,30 @@ export function RunaxLogo({ size = 40 }: { size?: number }) {
       aria-hidden="true"
     >
       {/* Outer ring — subtle orbit */}
-      <circle cx="20" cy="20" r="17" stroke="rgba(139,92,246,0.12)" strokeWidth="1" />
+      <circle cx="20" cy="20" r="17" stroke="rgba(16,185,129,0.12)" strokeWidth="1" />
 
       {/* Edge connections between nodes */}
-      <line x1="20" y1="9" x2="31" y2="25" stroke="rgba(167,139,250,0.25)" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="20" y1="9" x2="9" y2="25" stroke="rgba(167,139,250,0.25)" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="9" y1="25" x2="31" y2="25" stroke="rgba(167,139,250,0.25)" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="20" y1="9" x2="31" y2="25" stroke="rgba(52,211,153,0.25)" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="20" y1="9" x2="9" y2="25" stroke="rgba(52,211,153,0.25)" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="9" y1="25" x2="31" y2="25" stroke="rgba(52,211,153,0.25)" strokeWidth="1.2" strokeLinecap="round" />
       {/* Center to periphery connections */}
-      <line x1="20" y1="20" x2="20" y2="9" stroke="rgba(167,139,250,0.35)" strokeWidth="1" strokeLinecap="round" />
-      <line x1="20" y1="20" x2="31" y2="25" stroke="rgba(167,139,250,0.35)" strokeWidth="1" strokeLinecap="round" />
-      <line x1="20" y1="20" x2="9" y2="25" stroke="rgba(167,139,250,0.35)" strokeWidth="1" strokeLinecap="round" />
+      <line x1="20" y1="20" x2="20" y2="9" stroke="rgba(52,211,153,0.35)" strokeWidth="1" strokeLinecap="round" />
+      <line x1="20" y1="20" x2="31" y2="25" stroke="rgba(52,211,153,0.35)" strokeWidth="1" strokeLinecap="round" />
+      <line x1="20" y1="20" x2="9" y2="25" stroke="rgba(52,211,153,0.35)" strokeWidth="1" strokeLinecap="round" />
 
       {/* Peripheral nodes */}
-      <circle cx="20" cy="9" r="2.5" fill="#7c3aed" opacity="0.7" />
-      <circle cx="31" cy="25" r="2.5" fill="#7c3aed" opacity="0.7" />
-      <circle cx="9" cy="25" r="2.5" fill="#7c3aed" opacity="0.7" />
+      <circle cx="20" cy="9" r="2.5" fill="#059669" opacity="0.75" />
+      <circle cx="31" cy="25" r="2.5" fill="#059669" opacity="0.75" />
+      <circle cx="9" cy="25" r="2.5" fill="#059669" opacity="0.75" />
 
       {/* Central hub — brighter, larger */}
-      <circle cx="20" cy="20" r="4" fill="rgba(124,58,237,0.3)" />
-      <circle cx="20" cy="20" r="2.5" fill="#a78bfa" />
+      <circle cx="20" cy="20" r="4" fill="rgba(16,185,129,0.3)" />
+      <circle cx="20" cy="20" r="2.5" fill="#34d399" />
 
       {/* Spark / pulse — top right of center */}
       <path
         d="M27 11 L27.8 13.5 L30.5 14.3 L27.8 15.1 L27 17.5 L26.2 15.1 L23.5 14.3 L26.2 13.5 Z"
-        fill="#c4b5fd"
+        fill="#6ee7b7"
         opacity="0.95"
       />
     </svg>
@@ -242,7 +243,7 @@ export default function ChatArea({
             <div className="w-full max-w-xl flex flex-col items-center gap-6">
               {/* Logo + heading */}
               <div className="flex flex-col items-center gap-3 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-violet-600/20 to-purple-600/20 border border-violet-500/20 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-600/20 to-emerald-600/20 border border-emerald-500/20 flex items-center justify-center">
                   <RunaxLogo size={36} />
                 </div>
                 <div>

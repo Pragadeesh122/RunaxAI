@@ -30,7 +30,7 @@ export default function ProjectLoading() {
              <div className='h-12 w-1/2 bg-white/5 rounded-2xl rounded-bl-sm'></div>
            </div>
            <div className='flex flex-col gap-3 items-end animate-pulse'>
-             <div className='h-12 w-1/3 max-w-sm bg-violet-600/10 rounded-2xl rounded-br-sm'></div>
+             <div className='h-12 w-1/3 max-w-sm bg-emerald-600/10 rounded-2xl rounded-br-sm'></div>
            </div>
            
            {/* Skeleton Input */}

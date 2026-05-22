@@ -25,22 +25,23 @@ import { RunaxLogo } from './ChatArea';
 import SidebarAccountFooter from './SidebarAccountFooter';
 import type { Project, AgentInfo, Session, ProjectSearchResult, User } from '@/lib/types';
 
+// Agents differentiate by glyph, not colour (skill §3 Rule 2 — Lila Ban).
 const AGENT_ICONS: Record<string, React.ReactNode> = {
-  reasoning: <Brain size={16} className="text-violet-400" />,
-  quiz: <Exam size={16} className="text-blue-400" />,
-  visualization: <ChartBar size={16} className="text-emerald-400" />,
-  summary: <ListBullets size={16} className="text-amber-400" />,
+  reasoning: <Brain size={16} className="text-emerald-400/80" />,
+  quiz: <Exam size={16} className="text-emerald-400/80" />,
+  visualization: <ChartBar size={16} className="text-emerald-400/80" />,
+  summary: <ListBullets size={16} className="text-emerald-400/80" />,
 };
 
 function FileTypeIcon({ type }: { type: string }) {
   const size = 16;
   switch (type) {
     case 'pdf':
-      return <FilePdf size={size} className="text-red-400" />;
+      return <FilePdf size={size} className="text-zinc-300" />;
     case 'csv':
-      return <FileCsv size={size} className="text-green-400" />;
+      return <FileCsv size={size} className="text-zinc-300" />;
     case 'docx':
-      return <FileDoc size={size} className="text-blue-400" />;
+      return <FileDoc size={size} className="text-zinc-300" />;
     case 'txt':
     case 'md':
       return <FileText size={size} className="text-zinc-400" />;
@@ -53,7 +54,7 @@ function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case 'processing':
     case 'uploading':
-      return <SpinnerGap size={14} className="text-amber-400 animate-spin" />;
+      return <SpinnerGap size={14} className="text-zinc-400 animate-spin" />;
     case 'ready':
       return <CheckCircle size={14} className="text-emerald-400" />;
     case 'failed':
@@ -155,7 +156,7 @@ export default function ProjectSidebar({
       <div className="px-4 py-4 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-linear-to-br from-violet-600/30 to-purple-600/30 border border-violet-500/20 flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-linear-to-br from-emerald-500/20 to-emerald-400/10 border border-emerald-400/25 flex items-center justify-center shrink-0">
               <RunaxLogo size={22} />
             </div>
             <span className="text-sm font-semibold text-zinc-200 tracking-tight truncate">
@@ -195,8 +196,8 @@ export default function ProjectSidebar({
                     className={`
                       w-full text-left px-3 py-2 rounded-lg text-sm truncate transition-colors duration-150
                       ${activeSessionId === s.id
-                        ? 'bg-violet-500/20 text-zinc-100'
-                        : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                        ? 'bg-emerald-500/15 text-zinc-100 border-l-2 border-emerald-400'
+                        : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200 border-l-2 border-transparent'
                       }
                     `}
                     aria-current={activeSessionId === s.id ? 'true' : undefined}
@@ -229,23 +230,23 @@ export default function ProjectSidebar({
           <div className="flex flex-col gap-0.5">
             <button
               onClick={() => onSelectAgent(null)}
-              className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-colors duration-150 ${
+              className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-colors duration-150 border-l-2 ${
                 selectedAgent === null
-                  ? 'bg-violet-500/20 text-zinc-100'
-                  : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                  ? 'bg-emerald-500/15 text-zinc-100 border-emerald-400'
+                  : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200 border-transparent'
               }`}
             >
-              <Lightning size={16} className="text-violet-400" />
+              <Lightning size={16} className="text-emerald-400/80" />
               <span>Auto</span>
             </button>
             {agents.map((agent) => (
               <button
                 key={agent.name}
                 onClick={() => onSelectAgent(agent.name)}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-colors duration-150 ${
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-colors duration-150 border-l-2 ${
                   selectedAgent === agent.name
-                    ? 'bg-violet-500/20 text-zinc-100'
-                    : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                    ? 'bg-emerald-500/15 text-zinc-100 border-emerald-400'
+                    : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200 border-transparent'
                 }`}
               >
                 {AGENT_ICONS[agent.name] || <Brain size={16} className="text-zinc-400" />}
@@ -289,7 +290,7 @@ export default function ProjectSidebar({
             <button
               onClick={onSearch}
               disabled={isSearching || !searchQuery.trim()}
-              className="px-2 py-1 text-[11px] rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2 py-1 text-[11px] rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-400/25 hover:bg-emerald-500/25 transition-colors active:scale-[0.96] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSearching ? '...' : 'Go'}
             </button>
@@ -366,7 +367,7 @@ export default function ProjectSidebar({
             onClick={() => fileInputRef.current?.click()}
             className={`flex flex-col items-center gap-1.5 px-3 py-4 mb-2 rounded-xl border border-dashed cursor-pointer transition-all duration-150 ${
               isDragOver
-                ? 'border-violet-500/50 bg-violet-500/10'
+                ? 'border-emerald-400/50 bg-emerald-500/8'
                 : 'border-white/10 hover:border-white/20 hover:bg-white/3'
             } ${isUploading ? 'pointer-events-none opacity-60' : ''}`}
           >
@@ -385,14 +386,14 @@ export default function ProjectSidebar({
               className="hidden"
             />
             {isUploading ? (
-              <SpinnerGap size={20} className="text-violet-400 animate-spin" />
+              <SpinnerGap size={20} className="text-emerald-400/80 animate-spin" />
             ) : (
               <FileArrowUp size={20} className="text-zinc-500" />
             )}
             <span className="text-xs text-zinc-500">
-              {isUploading ? 'Uploading...' : 'Drop files or click to upload'}
+              {isUploading ? 'Uploading…' : 'Drop a PDF, CSV, MD, or DOCX'}
             </span>
-            <span className="text-[10px] text-zinc-600">PDF, TXT, MD, CSV, DOCX</span>
+            <span className="text-[10px] text-zinc-600">Up to 25 MB per file</span>
           </div>
 
           {/* Document list */}
@@ -416,7 +417,7 @@ export default function ProjectSidebar({
                     }}
                     disabled={isUploading || reingestingDocumentId === doc.id}
                     aria-label={`Replace ${doc.filename}`}
-                    className="p-1 rounded opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-violet-300 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1 rounded opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-emerald-300 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {reingestingDocumentId === doc.id ? (
                       <SpinnerGap size={13} className="animate-spin" />

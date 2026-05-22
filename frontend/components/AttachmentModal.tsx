@@ -117,7 +117,7 @@ export default function AttachmentModal({
                 download={attachment.filename}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-xs text-violet-200 hover:bg-violet-500/25 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-200 hover:bg-emerald-500/25 transition-colors"
               >
                 <DownloadSimple size={14} aria-hidden="true" />
                 Download

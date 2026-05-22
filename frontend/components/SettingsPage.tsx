@@ -99,7 +99,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
               <span>Back to workspace</span>
             </Link>
             <div>
-              <p className='text-xs uppercase tracking-[0.24em] text-violet-300/80'>
+              <p className='text-xs uppercase tracking-[0.24em] text-emerald-400/70'>
                 Settings
               </p>
               <h1 className='mt-2 text-3xl font-semibold tracking-tight text-zinc-100'>
@@ -124,7 +124,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
           <section className='space-y-6'>
             <div className='rounded-2xl border border-white/10 bg-[#1b1d21]/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur'>
               <div className='flex items-start gap-4'>
-                <div className='flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/15 text-lg font-medium text-violet-100'>
+                <div className='flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-lg font-medium text-zinc-200'>
                   {(user.name?.charAt(0) || user.email.charAt(0)).toUpperCase()}
                 </div>
                 <div className='min-w-0'>
@@ -148,7 +148,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
               id='security'
               className='rounded-2xl border border-white/10 bg-[#1b1d21]/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur'>
               <div className='flex items-center gap-3'>
-                <span className='rounded-xl border border-violet-400/20 bg-violet-500/15 p-2 text-violet-200'>
+                <span className='rounded-xl border border-emerald-400/25 bg-emerald-500/12 p-2 text-emerald-300'>
                   <Key size={18} aria-hidden='true' />
                 </span>
                 <div>
@@ -176,7 +176,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
                     onChange={(event) => setCurrentPassword(event.target.value)}
                     autoComplete='current-password'
                     required
-                    className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400/60'
+                    className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-emerald-400/60'
                   />
                 </div>
 
@@ -195,7 +195,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
                       autoComplete='new-password'
                       minLength={8}
                       required
-                      className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400/60'
+                      className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-emerald-400/60'
                     />
                   </div>
 
@@ -215,7 +215,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
                       autoComplete='new-password'
                       minLength={8}
                       required
-                      className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400/60'
+                      className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-emerald-400/60'
                     />
                   </div>
                 </div>
@@ -235,8 +235,8 @@ export default function SettingsPage({user}: SettingsPageProps) {
                 <button
                   type='submit'
                   disabled={isChangingPassword}
-                  className='rounded-xl border border-violet-400/30 bg-violet-500/18 px-4 py-2.5 text-sm font-medium text-violet-100 transition-colors hover:bg-violet-500/25 disabled:opacity-50'>
-                  {isChangingPassword ? "Please wait..." : "Change password"}
+                  className='rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-100 transition-[transform,background-color,border-color,opacity] duration-150 hover:bg-emerald-500/22 active:scale-[0.96] active:-translate-y-[1px] disabled:opacity-50 disabled:active:scale-100 disabled:active:translate-y-0'>
+                  {isChangingPassword ? "Please wait…" : "Change password"}
                 </button>
               </form>
             </div>
@@ -245,7 +245,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
           <section className='space-y-6'>
             <div className='rounded-2xl border border-white/10 bg-[#1b1d21]/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur'>
               <div className='flex items-center gap-3'>
-                <span className='rounded-xl border border-blue-400/20 bg-blue-500/15 p-2 text-blue-200'>
+                <span className='rounded-xl border border-emerald-400/25 bg-emerald-500/12 p-2 text-emerald-300'>
                   <EnvelopeSimple size={18} aria-hidden='true' />
                 </span>
                 <div>
@@ -275,7 +275,7 @@ export default function SettingsPage({user}: SettingsPageProps) {
                     onChange={(event) => setResetEmail(event.target.value)}
                     autoComplete='email'
                     required
-                    className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-blue-400/60'
+                    className='w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-emerald-400/60'
                   />
                 </div>
 
@@ -294,9 +294,9 @@ export default function SettingsPage({user}: SettingsPageProps) {
                 <button
                   type='submit'
                   disabled={isRequestingReset}
-                  className='w-full rounded-xl border border-blue-400/30 bg-blue-500/14 px-4 py-2.5 text-sm font-medium text-blue-100 transition-colors hover:bg-blue-500/20 disabled:opacity-50'>
+                  className='w-full rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-100 transition-[transform,background-color,border-color,opacity] duration-150 hover:bg-emerald-500/22 active:scale-[0.96] active:-translate-y-[1px] disabled:opacity-50 disabled:active:scale-100 disabled:active:translate-y-0'>
                   {isRequestingReset
-                    ? "Please wait..."
+                    ? "Please wait…"
                     : "Send reset instructions"}
                 </button>
               </form>

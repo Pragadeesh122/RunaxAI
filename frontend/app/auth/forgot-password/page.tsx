@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
             Recovery instructions were requested. In local development, the backend logs the
             recovery link.
           </p>
-          <Link href="/auth/signin" className="text-sm text-violet-300 hover:text-violet-200">
+          <Link href="/auth/signin" className="text-sm text-emerald-300 hover:text-emerald-200">
             Back to sign in
           </Link>
         </div>
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               required
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400/60"
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-emerald-400/60"
               placeholder="you@example.com"
             />
           </div>
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl border border-violet-400/30 bg-violet-500/18 px-4 py-2.5 text-sm font-medium text-violet-100 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
+            className="w-full rounded-xl border border-emerald-400/30 bg-emerald-500/18 px-4 py-2.5 text-sm font-medium text-emerald-100 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
           >
             {isSubmitting ? "Please wait..." : "Send reset instructions"}
           </button>
