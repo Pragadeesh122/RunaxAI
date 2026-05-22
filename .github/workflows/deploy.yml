@@ -31,6 +31,7 @@ jobs:
       packages: write
       id-token: write
       attestations: write
+      security-events: write   # upload SARIF to Security tab
     outputs:
       tag: ${{ steps.tag.outputs.value }}
       digest: ${{ steps.build.outputs.digest }}
@@ -67,9 +68,13 @@ jobs:
           sbom: true
 
       # Advisory scan; SARIF uploaded to Security tab. Non-blocking so a newly
-      # published CVE doesn't break deploys. Add a nightly job for hard-fail.
+      # published CVE — or a scanner-side failure — doesn't break deploys.
+      # Images are linux/arm64 only; TRIVY_PLATFORM avoids the amd64 default.
       - name: Scan API image (Trivy)
+        continue-on-error: true
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/arm64
         with:
           image-ref: ${{ env.API_IMAGE }}@${{ steps.build.outputs.digest }}
           severity: CRITICAL,HIGH
@@ -81,7 +86,8 @@ jobs:
           trivyignores: .trivyignore
 
       - name: Upload Trivy SARIF (API)
-        if: always()
+        if: hashFiles('trivy-api.sarif') != ''
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@458d36d7d4f47d0dd16ca424c1d3cda0060f1360 # v3
         with:
           sarif_file: trivy-api.sarif
@@ -106,6 +112,7 @@ jobs:
       packages: write
       id-token: write
       attestations: write
+      security-events: write   # upload SARIF to Security tab
     outputs:
       tag: ${{ steps.tag.outputs.value }}
       digest: ${{ steps.build.outputs.digest }}
@@ -143,7 +150,10 @@ jobs:
           sbom: true
 
       - name: Scan frontend image (Trivy)
+        continue-on-error: true
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/arm64
         with:
           image-ref: ${{ env.FRONTEND_IMAGE }}@${{ steps.build.outputs.digest }}
           severity: CRITICAL,HIGH
@@ -155,7 +165,8 @@ jobs:
           trivyignores: .trivyignore
 
       - name: Upload Trivy SARIF (frontend)
-        if: always()
+        if: hashFiles('trivy-frontend.sarif') != ''
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@458d36d7d4f47d0dd16ca424c1d3cda0060f1360 # v3
         with:
           sarif_file: trivy-frontend.sarif
