@@ -27,33 +27,11 @@ class User(Base):
     image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     oauth_accounts: Mapped[List[OAuthAccount]] = relationship("OAuthAccount", lazy="joined")
-    memory: Mapped[Optional["UserMemory"]] = relationship("UserMemory", back_populates="user", uselist=False, cascade="all, delete-orphan")
     projects: Mapped[List["Project"]] = relationship("Project", back_populates="user", cascade="all, delete-orphan")
     chat_sessions: Mapped[List["ChatSession"]] = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class UserMemory(Base):
-    """Deprecated — replaced by UserMemoryFact. Retained for backfill read path.
-
-    Will be dropped in a follow-up migration after 30 days of stable operation.
-    """
-    __tablename__ = "user_memory"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), unique=True)
-
-    work_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    personal_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    top_of_mind: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    preferences: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user: Mapped["User"] = relationship("User", back_populates="memory")
-
 
 class UserMemoryFact(Base):
     """Atomic user memory fact. One row per fact. Superseded facts are kept
