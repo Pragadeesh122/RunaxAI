@@ -12,7 +12,10 @@ permissions:
 
 concurrency:
   group: deploy
-  cancel-in-progress: true
+  # Never cancel a running deploy: helm upgrade --atomic mid-flight leaves the
+  # release in pending-upgrade state, blocking all subsequent deploys until a
+  # manual `helm rollback` clears it. Queue main deploys instead.
+  cancel-in-progress: false
 
 env:
   API_IMAGE: ghcr.io/pragadeesh122/agenticrag-api
