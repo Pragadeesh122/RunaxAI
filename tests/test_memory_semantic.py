@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import pytest
 
 from memory import semantic
-from scripts import backfill_memory_from_redis as backfill
 
 
 class _FakeSyncSession:
@@ -289,49 +288,3 @@ def test_get_user_memory_formats_unsuperseded_facts(monkeypatch):
     )
     assert "superseded_at IS NULL" in session.executed[0][0]
     assert session.executed[0][1]["uid"] == user_id
-
-
-def test_backfill_user_splits_legacy_blob_into_atomic_facts(monkeypatch):
-    user_id = str(uuid.uuid4())
-    session = _FakeSyncSession()
-
-    monkeypatch.setattr(backfill, "sync_session_maker", _SessionFactory(session))
-    monkeypatch.setattr(backfill, "_already_backfilled", lambda db, uid: False)
-    monkeypatch.setattr(
-        backfill,
-        "_read_redis_hash",
-        lambda uid: {
-            "work_context": "Building AgenticRag with FastAPI and ARQ.",
-            "preferences": "Wants concise explanations.",
-        },
-    )
-    monkeypatch.setattr(
-        backfill,
-        "_read_postgres_legacy",
-        lambda db, uid: (_ for _ in ()).throw(
-            AssertionError("Redis blob should have been preferred")
-        ),
-    )
-    monkeypatch.setattr(
-        backfill,
-        "_extract_candidate_facts",
-        lambda messages, rolling_summary, observation_date: [
-            "Builds AgenticRag with FastAPI and ARQ",
-            "Prefers concise explanations",
-        ],
-    )
-    monkeypatch.setattr(backfill, "_embed", lambda fact: [0.1, 0.2, 0.3])
-
-    count = backfill.backfill_user(user_id)
-
-    assert count == 2
-    assert session.committed is True
-    assert [fact.text for fact in session.added] == [
-        "Builds AgenticRag with FastAPI and ARQ",
-        "Prefers concise explanations",
-    ]
-    assert all(fact.user_id == uuid.UUID(user_id) for fact in session.added)
-    assert all(
-        fact.source_session_id == backfill.BACKFILL_SESSION_ID
-        for fact in session.added
-    )

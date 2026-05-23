@@ -1,0 +1,27 @@
+# CODEOWNERS — auto-requests review from owners on PRs touching listed paths.
+# Currently a single-owner project; this file exists so that the moment a
+# second contributor joins, the security-sensitive paths are already gated.
+#
+# Format: <path-pattern>  <owner1> [owner2 ...]
+# Later entries override earlier ones — the LAST matching pattern wins.
+
+# Default owner for everything
+*                               @Pragadeesh122
+
+# CI / build pipeline — any change here is a privileged operation
+/.github/                       @Pragadeesh122
+/.github/workflows/             @Pragadeesh122
+/Dockerfile                     @Pragadeesh122
+/frontend/Dockerfile            @Pragadeesh122
+
+# Deploy surface — Helm chart + cluster ops
+/helm/                          @Pragadeesh122
+/scripts/                       @Pragadeesh122
+
+# Database schema + migrations
+/alembic/                       @Pragadeesh122
+/database/                      @Pragadeesh122
+
+# Auth + secrets-adjacent code
+/api/server.py                  @Pragadeesh122
+/api/rate_limit.py              @Pragadeesh122
