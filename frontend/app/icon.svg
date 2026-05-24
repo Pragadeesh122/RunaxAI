@@ -1,12 +1,12 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="64" height="64" rx="16" fill="#0A0A12"/>
-  <circle cx="32" cy="32" r="24" stroke="#8B5CF6" stroke-opacity="0.22" stroke-width="2"/>
-  <path d="M32 15L49 40H15L32 15Z" stroke="#A78BFA" stroke-opacity="0.42" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M32 32V15M32 32L49 40M32 32L15 40" stroke="#C4B5FD" stroke-opacity="0.48" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="32" cy="15" r="4" fill="#7C3AED"/>
-  <circle cx="49" cy="40" r="4" fill="#7C3AED"/>
-  <circle cx="15" cy="40" r="4" fill="#7C3AED"/>
-  <circle cx="32" cy="32" r="7" fill="#7C3AED" fill-opacity="0.32"/>
-  <circle cx="32" cy="32" r="4" fill="#C4B5FD"/>
-  <path d="M44.5 16L46 20.5L50.5 22L46 23.5L44.5 28L43 23.5L38.5 22L43 20.5L44.5 16Z" fill="#E9D5FF"/>
+  <circle cx="32" cy="32" r="24" stroke="#10B981" stroke-opacity="0.22" stroke-width="2"/>
+  <path d="M32 15L49 40H15L32 15Z" stroke="#34D399" stroke-opacity="0.42" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 32V15M32 32L49 40M32 32L15 40" stroke="#6EE7B7" stroke-opacity="0.48" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="32" cy="15" r="4" fill="#059669"/>
+  <circle cx="49" cy="40" r="4" fill="#059669"/>
+  <circle cx="15" cy="40" r="4" fill="#059669"/>
+  <circle cx="32" cy="32" r="7" fill="#059669" fill-opacity="0.32"/>
+  <circle cx="32" cy="32" r="4" fill="#6EE7B7"/>
+  <path d="M44.5 16L46 20.5L50.5 22L46 23.5L44.5 28L43 23.5L38.5 22L43 20.5L44.5 16Z" fill="#A7F3D0"/>
 </svg>
