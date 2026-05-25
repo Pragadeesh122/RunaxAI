@@ -15,48 +15,48 @@
     package-manager-detector "^1.3.0"
     tinyexec "^1.0.1"
 
-"@assistant-ui/core@^0.2.4":
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/core/-/core-0.2.4.tgz#2b8c805ab56659b67f078a48012b69d31db93325"
-  integrity sha512-ct3FyWfo5iIA6y0AXg41oLGRJRGTY4Z8UcYnimQZPyRfpsxI0QggjfGzL/MploSJuOb4p+jE3XZIg2wB6p1rjw==
+"@assistant-ui/core@^0.2.5":
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/core/-/core-0.2.5.tgz#e837909702ec8e765407db20878fbbb5df7f1354"
+  integrity sha512-Hx5KJHfHe2YEQ85jOE5pvOJsji6iYp75IYzBj8XN9+ONu11wf5kvy0iyojwNoPo0TAjsnqgnv0WfZpnYOqGR2Q==
   dependencies:
-    assistant-stream "^0.3.15"
+    assistant-stream "^0.3.16"
     nanoid "^5.1.11"
 
-"@assistant-ui/react@^0.14.7":
-  version "0.14.7"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/react/-/react-0.14.7.tgz#83be8021ac1c1b1405687e56e4e7f61929808c20"
-  integrity sha512-GiEF4tYyU9uuBxUhGxy65kw54mtHS/L5zC6PyJpVUUFyGTjzprTqaFGZLhQuVFwJWqqGIzuHotYrfKZRgU9cCQ==
+"@assistant-ui/react@^0.14.8":
+  version "0.14.8"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/react/-/react-0.14.8.tgz#2a694ba9bbb52eef01a0e559347261c9ce04fe00"
+  integrity sha512-Pus6hZ9JGjN3t/SBAvbhf76FBgYa0tS9j7RyOorgRCWy9YjL5z+jR5L73AIpv+tPkrlwqyfsv7WJtL+FhK4dwA==
   dependencies:
-    "@assistant-ui/core" "^0.2.4"
-    "@assistant-ui/store" "^0.2.11"
-    "@assistant-ui/tap" "^0.5.11"
+    "@assistant-ui/core" "^0.2.5"
+    "@assistant-ui/store" "^0.2.12"
+    "@assistant-ui/tap" "^0.5.12"
     "@radix-ui/primitive" "^1.1.3"
     "@radix-ui/react-compose-refs" "^1.1.2"
     "@radix-ui/react-context" "^1.1.3"
     "@radix-ui/react-primitive" "^2.1.4"
     "@radix-ui/react-use-callback-ref" "^1.1.1"
     "@radix-ui/react-use-escape-keydown" "^1.1.1"
-    assistant-cloud "^0.1.28"
-    assistant-stream "^0.3.15"
+    assistant-cloud "^0.1.29"
+    assistant-stream "^0.3.16"
     nanoid "^5.1.11"
     radix-ui "^1.4.3"
     react-textarea-autosize "^8.5.9"
-    safe-content-frame "^0.0.19"
+    safe-content-frame "^0.0.20"
     zod "^4.4.3"
     zustand "^5.0.13"
 
-"@assistant-ui/store@^0.2.11":
-  version "0.2.11"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/store/-/store-0.2.11.tgz#a3fd8e07db971c019e10290fef358c66a28b427e"
-  integrity sha512-thImx0rsaBiiDG00qaXcNlvo1SLQse19rFoVra7xCfWrj91FGVGbwwMV5h4/h6ifbMx+BcbUUgzLIf8BJBKGdQ==
+"@assistant-ui/store@^0.2.12":
+  version "0.2.12"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/store/-/store-0.2.12.tgz#16c138f2392182749f91c31f0987e5fec3efa31f"
+  integrity sha512-XIm0XfbC4gdZLuwbqnOTZgp3Okl8BGdl0LlDIRHV/KYHo1KGH572Gow0t/W0KfuAKbmOtngiZDoHn6pu7nhzjg==
   dependencies:
     use-effect-event "^2.0.3"
 
-"@assistant-ui/tap@^0.5.11":
-  version "0.5.11"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/tap/-/tap-0.5.11.tgz#ded02bbd7db8ed3efa9f4bcdd929177f318ac648"
-  integrity sha512-wsEp6mn6BOQnP56OksWHarIQiMeCDcTzEiAORTUq0yxWa/co6a06UowFe6zZS6WQ56EQ3w02bfSBFrGnsrIv5A==
+"@assistant-ui/tap@^0.5.12":
+  version "0.5.12"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/tap/-/tap-0.5.12.tgz#d82fec0e5b83ee588d14dac459ff359edca5b67b"
+  integrity sha512-V1U98eFG6+rB1r1upXfqdsRUHIuvFEGh+MP1aveA5NKN1oAvzbm30zGqO0dX2KsX/QgPIX1tox9XyYTSJFmQ4A==
 
 "@babel/code-frame@^7.23.5", "@babel/code-frame@^7.28.6", "@babel/code-frame@^7.29.0":
   version "7.29.0"
@@ -2280,17 +2280,17 @@ arraybuffer.prototype.slice@^1.0.4:
     get-intrinsic "^1.2.6"
     is-array-buffer "^3.0.4"
 
-assistant-cloud@^0.1.28:
-  version "0.1.28"
-  resolved "https://registry.yarnpkg.com/assistant-cloud/-/assistant-cloud-0.1.28.tgz#88194865c79d9b8d306cbe52802b3482f1b45740"
-  integrity sha512-6cn+TPFRLwLyi5P/cOfyEtIGG2lfFy26VAJ+Rk+1pni3LTunDzBuLKpwoxMxNCFB4GhqBfAlzTiay7QI2qsJfw==
+assistant-cloud@^0.1.29:
+  version "0.1.29"
+  resolved "https://registry.yarnpkg.com/assistant-cloud/-/assistant-cloud-0.1.29.tgz#1e05be39a21310572c3f76b40d8441aaacc6e86d"
+  integrity sha512-MumJHqA0eumNCSYYWgYJvbPhqsZ2K1y28pGQ7dPCJxPNUDXhUxOfYU9vuL786i5uawS2asf7ibzvKTCi2+LZuw==
   dependencies:
-    assistant-stream "^0.3.15"
+    assistant-stream "^0.3.16"
 
-assistant-stream@^0.3.15:
-  version "0.3.15"
-  resolved "https://registry.yarnpkg.com/assistant-stream/-/assistant-stream-0.3.15.tgz#1a34342734fbe5cf6b8645f8a08cf460f0323872"
-  integrity sha512-gVFIhJ8FyITMd7RU11EckNEXJOocjohNB0XltcWNbKeWmTEKKaF62dkhKwXWjEJdvHtp29XaEjusiey/LCi7Bg==
+assistant-stream@^0.3.16:
+  version "0.3.16"
+  resolved "https://registry.yarnpkg.com/assistant-stream/-/assistant-stream-0.3.16.tgz#3a2e38011fcf7a363735e0f1d56839c46b16bc20"
+  integrity sha512-jrz5TxUNnZCy5SHdEFGEbYc/So0AlRS1Uw0k6/K8rCwulrs81s8oC+XT3LsHVDVz1KEdosCWbb27DG4ItS1vxQ==
   dependencies:
     "@standard-schema/spec" "^1.1.0"
     nanoid "^5.1.11"
@@ -5794,10 +5794,10 @@ safe-array-concat@^1.1.3:
     has-symbols "^1.1.0"
     isarray "^2.0.5"
 
-safe-content-frame@^0.0.19:
-  version "0.0.19"
-  resolved "https://registry.yarnpkg.com/safe-content-frame/-/safe-content-frame-0.0.19.tgz#347197b2bc68236b76217c2b76b8599dbca2b0bc"
-  integrity sha512-+R0IHHjvghT5O8bc8itf9AoS9MvzhUcD0p+hNINLgyEuFQJug3wt3ZuhLFZFG3bUzHi8UfQED4p6J3/Ft9oCtg==
+safe-content-frame@^0.0.20:
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/safe-content-frame/-/safe-content-frame-0.0.20.tgz#e1970fb2ec2c6067b687bd28190de857e171e807"
+  integrity sha512-saE3fBeGWOsi04PzTUaRi6RsBIjDYrZX4KzgIZUjbq3xQeOKYMcW1DeTb573Zyx1ggCDVJKoD/THchblISwjiQ==
 
 safe-push-apply@^1.0.0:
   version "1.0.0"
