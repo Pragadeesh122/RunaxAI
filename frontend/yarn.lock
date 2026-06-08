@@ -15,20 +15,20 @@
     package-manager-detector "^1.3.0"
     tinyexec "^1.0.1"
 
-"@assistant-ui/core@^0.2.9":
-  version "0.2.9"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/core/-/core-0.2.9.tgz#5244145b24f35007393b7a3ae17cd58278986632"
-  integrity sha512-L/+5uj4kAYXh7KLOSdvOOeM285LWfGjrym9qfSXxFSv3+eqSfqp6ynIPZm7IZpIREAlBAyixrVOP/VR3u7cFhg==
+"@assistant-ui/core@^0.2.10":
+  version "0.2.10"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/core/-/core-0.2.10.tgz#9bcd394a575b6b0a6fe7b72d20fb7b8aedad6253"
+  integrity sha512-0YyqlpZgg1Hoaq2X4jHAaMKXg+lGniLygNt1KrGFTPgbxeo8ZStRjWyyG2xIl+zlFKHiKCGHzflUHvlJi4IurA==
   dependencies:
-    assistant-stream "^0.3.19"
+    assistant-stream "^0.3.20"
     nanoid "^5.1.11"
 
-"@assistant-ui/react@^0.14.13":
-  version "0.14.13"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/react/-/react-0.14.13.tgz#8e363e9222bd860ce5919dfd9cb85b4298960474"
-  integrity sha512-ns+Obvj2uZiI5YS5/pWaZsxGqD7r3JMsb+QrM2S7vl+tjFOSq8+y8srvO8S4vZIbLBtvTf3y/JYWGGo0XXCBgg==
+"@assistant-ui/react@^0.14.14":
+  version "0.14.14"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/react/-/react-0.14.14.tgz#14b90939a04eaac10e8c6f7c7875d2ff7659cdcb"
+  integrity sha512-qS7YJewwFbmhs+yte56ZnO9jIOK+8hKo7mOK3cKDcCndn+jGSWTJmoNVIYQgMpB2JYIJ/SKZD+LeWSR6K3LL5g==
   dependencies:
-    "@assistant-ui/core" "^0.2.9"
+    "@assistant-ui/core" "^0.2.10"
     "@assistant-ui/store" "^0.2.13"
     "@assistant-ui/tap" "^0.5.14"
     "@radix-ui/primitive" "^1.1.3"
@@ -37,8 +37,8 @@
     "@radix-ui/react-primitive" "^2.1.4"
     "@radix-ui/react-use-callback-ref" "^1.1.1"
     "@radix-ui/react-use-escape-keydown" "^1.1.1"
-    assistant-cloud "^0.1.30"
-    assistant-stream "^0.3.19"
+    assistant-cloud "^0.1.31"
+    assistant-stream "^0.3.20"
     nanoid "^5.1.11"
     radix-ui "^1.4.3"
     react-textarea-autosize "^8.5.9"
@@ -1910,10 +1910,10 @@
   resolved "https://registry.npmjs.org/@types/ms/-/ms-2.1.0.tgz"
   integrity sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==
 
-"@types/node@25.9.1":
-  version "25.9.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-25.9.1.tgz#3bda556db500ae4319c08e7fc9ab94f19013ba0b"
-  integrity sha512-xfrlY7UD5rMJk3ZVJP8BNzS28J36YJg+xp+LPXV1TdWxr8uMH5A860QNxYDGQe/ylDSgjxE52Q9VnO7p75tJxg==
+"@types/node@25.9.2":
+  version "25.9.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-25.9.2.tgz#fc8958e757994b71fee516f9634bdb03d1b19e9f"
+  integrity sha512-G05zqtJhcDLb8uslf5EjCxXg9G1KQxiV8OS0R26IC//Eoyitzqe8z37I7cqvnZlrlSfgocQRfSn/AHBZJJFyGw==
   dependencies:
     undici-types ">=7.24.0 <7.24.7"
 
@@ -1923,9 +1923,9 @@
   integrity sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==
 
 "@types/react@^19":
-  version "19.2.16"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-19.2.16.tgz#9868b153fd9e34e0117afcd5d7e372b8179337e1"
-  integrity sha512-esJiCAnl0kfpNdE69f3So4WJUXy95dLZydX0KwK46riIHDzHM7O9Vtf9xCHW0PXIqvgqNrswl522kA/5yx+F4w==
+  version "19.2.17"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-19.2.17.tgz#dccac365baa0f1734ec270ff4b51c89465e8dc7f"
+  integrity sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==
   dependencies:
     csstype "^3.2.2"
 
@@ -2280,17 +2280,17 @@ arraybuffer.prototype.slice@^1.0.4:
     get-intrinsic "^1.2.6"
     is-array-buffer "^3.0.4"
 
-assistant-cloud@^0.1.30:
-  version "0.1.30"
-  resolved "https://registry.yarnpkg.com/assistant-cloud/-/assistant-cloud-0.1.30.tgz#688a9f4f825c21efea16ba0c1f132b9ae9efc22f"
-  integrity sha512-nvkCybhddbRYsAuZuueRaftvi0XRUTGVU3kNAn5jOz4bVCk6ZQqxuULrR4NkEwuZ5RIpxb6jwDcgGEFL4a9H7w==
+assistant-cloud@^0.1.31:
+  version "0.1.31"
+  resolved "https://registry.yarnpkg.com/assistant-cloud/-/assistant-cloud-0.1.31.tgz#5dbb9bb3ae0edff3261f31ba9c244eb07c8fbe1a"
+  integrity sha512-YBLc79w2EFD/6YjvcZrperpZ+B3TQ9LZ39AbjfcnbIJiSXYAs8cDH+mgy1GrfJBq47nhGaTVEf7ajv+hk084eA==
   dependencies:
-    assistant-stream "^0.3.18"
+    assistant-stream "^0.3.20"
 
-assistant-stream@^0.3.18, assistant-stream@^0.3.19:
-  version "0.3.19"
-  resolved "https://registry.yarnpkg.com/assistant-stream/-/assistant-stream-0.3.19.tgz#4bd46b19f7b358cfbee99e8f2fd0503bd765ba7a"
-  integrity sha512-R5uj3fe9vLV0CJkUWAHBsBcIRTEyzST6h6pPIaWgK9BE6osT2dJY9I+EIeBMb+tlEKNGcJBnvwI5idRsEWH3IQ==
+assistant-stream@^0.3.20:
+  version "0.3.20"
+  resolved "https://registry.yarnpkg.com/assistant-stream/-/assistant-stream-0.3.20.tgz#d21d8d7c00b0d462a9cf23e6890b44f3194762bc"
+  integrity sha512-CniC84epmE9JrMSDzlZVWJ13O5rYbjoqEzh0jT+QfsrR07LBls42DMJ60XNxKXm8Hrn6MHSZcxqBUqwXRtoutA==
   dependencies:
     "@standard-schema/spec" "^1.1.0"
     nanoid "^5.1.11"
