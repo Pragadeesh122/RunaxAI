@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@assistant-ui/react": "^0.14.21",
+    "@assistant-ui/react": "^0.14.22",
     "@phosphor-icons/react": "^2.1.10",
     "@streamdown/code": "^1.1.1",
     "gray-matter": "^4.0.3",
