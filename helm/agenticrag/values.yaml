@@ -251,6 +251,7 @@ secrets:
   anthropicApiKey: ""
   geminiApiKey: ""
   xaiApiKey: ""
+  openrouterApiKey: ""
   braveApiKey: ""
   authGoogleId: ""
   authGoogleSecret: ""
