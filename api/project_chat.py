@@ -12,6 +12,12 @@ import logging
 from agents.base import Agent
 from agents.router import route as route_agent
 from api.session import get_messages, save_messages, get_session_user
+from api.session_budget import (
+    budget_exceeded_message,
+    check_session_budget,
+    note_session_budget_blocked,
+    record_session_tokens,
+)
 from functions import tool_schemas
 from functions.tool_router import execute_tool_call
 from llm.response_utils import usage_tokens
@@ -99,6 +105,15 @@ def project_chat_stream(
     _span_ctx = chat_turn_span(span_name="project_chat.turn", chat_type="project")
     _span_ctx.__enter__()
     try:
+        # Per-session spend guardrail: refuse turns once the session has spent
+        # its cumulative token budget (see api/session_budget.py).
+        budget = check_session_budget(session_id)
+        if not budget.allowed:
+            note_session_budget_blocked(chat_type="project")
+            yield _sse("error", budget_exceeded_message(budget))
+            yield _sse("done", json.dumps({"budget_exceeded": True}))
+            return
+
         messages = get_messages(session_id)
 
         # 1. Route to agent (pass full conversation for context-aware classification)
@@ -300,6 +315,11 @@ def project_chat_stream(
             schedule_memory_summary_refresh(messages, session_id=session_id)
 
         save_messages(session_id, messages)
+
+        # Charge this turn against the session spend guardrail.
+        if usage:
+            turn_prompt, turn_completion = usage_tokens(usage)
+            record_session_tokens(session_id, turn_prompt, turn_completion)
 
         if user_id:
             schedule_memory_persistence(messages, user_id, session_id=session_id)

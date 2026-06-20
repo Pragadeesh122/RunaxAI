@@ -11,6 +11,12 @@ from utils.streaming import iter_response, ToolCallProxy, sanitize_for_client
 from utils.tool_planner import plan_tool_calls
 from utils.summarizer import summarize_messages
 from api.session import get_messages, save_messages, get_session_user
+from api.session_budget import (
+    budget_exceeded_message,
+    check_session_budget,
+    note_session_budget_blocked,
+    record_session_tokens,
+)
 from llm.response_utils import usage_tokens
 from observability.context import pop_context, push_context
 from observability.metrics import (
@@ -185,6 +191,15 @@ def chat_stream(session_id: str, user_message: str, attachments: list[dict] | No
             status="success",
             duration_seconds=0.0,
         )
+
+        # Per-session spend guardrail: refuse turns once the session has spent
+        # its cumulative token budget (see api/session_budget.py).
+        budget = check_session_budget(session_id)
+        if not budget.allowed:
+            note_session_budget_blocked(chat_type="general")
+            yield _sse("error", budget_exceeded_message(budget))
+            yield _sse("done", json.dumps({"tools_used": [], "budget_exceeded": True}))
+            return
 
         messages = get_messages(session_id)
         attachments = attachments or []
@@ -423,6 +438,11 @@ def chat_stream(session_id: str, user_message: str, attachments: list[dict] | No
             schedule_memory_summary_refresh(messages, session_id=session_id)
 
         save_messages(session_id, messages)
+
+        # Charge this turn against the session spend guardrail.
+        if usage:
+            turn_prompt, turn_completion = usage_tokens(usage)
+            record_session_tokens(session_id, turn_prompt, turn_completion)
 
         if user_id:
             schedule_memory_persistence(messages, user_id, session_id=session_id)

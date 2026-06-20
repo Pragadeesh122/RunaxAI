@@ -65,6 +65,8 @@ Gated behind `OBS_ENABLE_HIGH_CARDINALITY_METRICS` (default: on). These use hash
 | `agenticrag_tool_budget_exhausted_total` | Counter | chat_type, budget | Budget exhaustion events (reasoning_steps or total_tool_calls) |
 | `agenticrag_summarization_events_total` | Counter | chat_type, reason | Conversation summarization triggers |
 | `agenticrag_retrieval_results_count` | Histogram | agent_name | Retrieved chunk count per query |
+| `agenticrag_retrieval_duration_seconds` | Histogram | cache_status | End-to-end RAG retrieval latency (cache lookup + vector search + rerank), `hit`/`miss` |
+| `agenticrag_session_budget_blocked_total` | Counter | chat_type, limit | Chat turns refused by the per-session spend guardrail |
 
 ### HTTP Metrics
 
@@ -136,9 +138,9 @@ Three dashboards are auto-provisioned from `monitoring/grafana/provisioning/dash
 
 | Dashboard | Focus |
 |-----------|-------|
-| **RunaxAI - Economics** | LLM spend by provider/model, token usage trends, cost per chat type |
+| **RunaxAI - Economics** | LLM spend by provider/model, token usage trends, cost per chat type, session spend-guardrail blocks |
 | **RunaxAI - Operations** | Agent routing distribution, tool call counts, orchestration step analysis, retrieval chunk counts, duplicate suppression rates |
-| **RunaxAI - UX & Latency** | TTFT distribution, request duration, streaming output speed, HTTP request rates |
+| **RunaxAI - UX & Latency** | TTFT distribution, request duration, streaming output speed, chat/stream p50/p95 by mode, RAG retrieval p50/p95, HTTP request rates |
 
 ### Alert Rules
 
@@ -154,3 +156,53 @@ LLM spend is estimated using LiteLLM's `cost_per_token()` function, which mainta
 4. Broken down by provider, model, and chat type
 
 When token usage isn't reported by the provider (common with some streaming implementations), the client estimates tokens using `litellm.token_counter()` before computing cost.
+
+## Spend Guardrails
+
+Two layers bound LLM spend, each with sane, env-tunable defaults.
+
+### Per-turn context cap (summarization)
+
+Each chat turn measures its prompt token count and, once it exceeds a threshold, collapses older history into a summary before the next turn. This caps the size — and therefore the per-call cost — of any single request.
+
+| Path | Constant | Default | Behavior on breach |
+|------|----------|---------|--------------------|
+| General chat | `MAX_PROMPT_TOKENS` (`api/chat.py`) | 40,000 | Summarize conversation |
+| Project chat | `MAX_PROMPT_TOKENS` (`api/project_chat.py`) | 60,000 | Summarize conversation |
+| Worker prompts | `MAX_PROMPT_TOKENS` (`main.py`) | 10,000 | Summarize conversation |
+| Per uploaded file | `MAX_TOKENS_PER_DOCUMENT` (`pipeline/chat_attachments.py`) | 25,000 | Reject the file |
+| Per session attachments | `MAX_SESSION_ATTACHMENT_TOKENS` (`pipeline/chat_attachments.py`) | 25,000 | Reject the upload |
+
+### Per-session spend ceiling
+
+`api/session_budget.py` enforces a cumulative token ceiling per chat session, backed by a Redis counter that shares the 24h session TTL. Every turn's prompt+completion tokens are added to the counter; once a session crosses the ceiling, further turns are refused with a user-facing error (`event: error`) and a `budget_exceeded` `done` event. This bounds the blast radius of runaway tool loops, abusive clients, or pathological conversations.
+
+| Env var | Default | Meaning |
+|---------|---------|---------|
+| `MAX_SESSION_TOKENS` | 2,000,000 | Cumulative prompt+completion tokens allowed per session. `0` disables enforcement. |
+
+Design notes:
+
+- **Fails open.** Any Redis error during the budget check allows the turn — an observability guardrail must never take down the chat path.
+- **Generous by default.** 2M tokens is far above any honest single conversation (~/session at GPT-4o-class blended pricing), so it only trips on abuse/runaways. Lower it per-environment for tighter cost control.
+- **Observable.** Trips are counted in `agenticrag_session_budget_blocked_total{chat_type}` and surfaced on the **Economics** dashboard ("Session Spend Guardrail Blocks").
+
+## Baseline
+
+Live spend/latency baselines are read from Grafana once production traffic flows; the dashboards above are the source of truth. Useful baseline queries (Explore -> Prometheus):
+
+```promql
+# Blended cost per 1K tokens (range)
+(1000 * sum(increase(agenticrag_llm_spend_usd_total[$__range])))
+  / clamp_min(sum(increase(agenticrag_llm_tokens_total[$__range])), 1)
+
+# Chat/stream completion latency p50 / p95 by mode
+histogram_quantile(0.50, sum by (le, chat_type) (rate(agenticrag_llm_request_duration_seconds_bucket{operation="completion",stream="true"}[5m])))
+histogram_quantile(0.95, sum by (le, chat_type) (rate(agenticrag_llm_request_duration_seconds_bucket{operation="completion",stream="true"}[5m])))
+
+# RAG retrieval latency p50 / p95 by cache status
+histogram_quantile(0.50, sum by (le, cache_status) (rate(agenticrag_retrieval_duration_seconds_bucket[5m])))
+histogram_quantile(0.95, sum by (le, cache_status) (rate(agenticrag_retrieval_duration_seconds_bucket[5m])))
+```
+
+**Cost-model baseline (bounded worst case).** Because per-turn prompt size is capped (see above), the maximum spend per turn is bounded. At GPT-4o-class blended pricing (~/1M input, ~/1M output), a worst-case general-chat turn (40K prompt + ~2K output) costs ~, and a project-chat turn (60K prompt + ~2K output) ~. With the 2M-token session ceiling, a single session is hard-capped at roughly  of spend. These are upper bounds; typical turns are far smaller. Replace with measured values from the queries above once real traffic is captured (target: record p50/p95 latency and /1K-token blended cost after the first week of production traffic).

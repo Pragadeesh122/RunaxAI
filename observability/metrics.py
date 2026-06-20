@@ -120,6 +120,18 @@ RETRIEVAL_RESULTS_COUNT = Histogram(
     ["agent_name"],
     buckets=(0, 1, 2, 3, 5, 8, 10, 15, 20, 30, 50, 100),
 )
+RETRIEVAL_DURATION_SECONDS = Histogram(
+    "agenticrag_retrieval_duration_seconds",
+    "End-to-end RAG retrieval latency in seconds (cache lookup + vector search "
+    "+ rerank), labelled by whether the semantic cache served the result.",
+    ["cache_status"],
+    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 3, 5, 10),
+)
+SESSION_BUDGET_BLOCKED_TOTAL = Counter(
+    "agenticrag_session_budget_blocked_total",
+    "Chat turns refused because a per-session spend guardrail ceiling was reached.",
+    ["chat_type", "limit"],
+)
 ORCHESTRATION_STEPS_TOTAL = Counter(
     "agenticrag_orchestration_steps_total",
     "General-chat orchestration step planning decisions.",
@@ -323,6 +335,21 @@ def observe_retrieval_results(*, agent_name: str, result_count: int) -> None:
     RETRIEVAL_RESULTS_COUNT.labels(agent_name=(agent_name or "unknown")).observe(
         max(result_count, 0)
     )
+
+
+def observe_retrieval_latency(*, cache_hit: bool, duration_seconds: float) -> None:
+    if duration_seconds < 0:
+        return
+    RETRIEVAL_DURATION_SECONDS.labels(
+        cache_status="hit" if cache_hit else "miss"
+    ).observe(duration_seconds)
+
+
+def observe_session_budget_blocked(*, chat_type: str, limit: str) -> None:
+    SESSION_BUDGET_BLOCKED_TOTAL.labels(
+        chat_type=chat_type or "unknown",
+        limit=limit or "unknown",
+    ).inc()
 
 
 def observe_orchestration_step(

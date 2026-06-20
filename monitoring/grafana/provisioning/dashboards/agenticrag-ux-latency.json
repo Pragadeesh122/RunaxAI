@@ -191,6 +191,50 @@
       ],
       "title": "HTTP 5xx Rate by Path",
       "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "End-to-end RAG retrieval latency (cache lookup + vector search + rerank), split by cache hit/miss.",
+      "fieldConfig": {"defaults": {"unit": "s", "decimals": 3}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+      "id": 9,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, cache_status) (rate(agenticrag_retrieval_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50 {{cache_status}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, cache_status) (rate(agenticrag_retrieval_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95 {{cache_status}}",
+          "refId": "B"
+        }
+      ],
+      "title": "RAG Retrieval Latency (p50/p95)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "p50 and p95 end-to-end LLM completion latency for streaming chat turns, broken down by chat mode (general vs project).",
+      "fieldConfig": {"defaults": {"unit": "s", "decimals": 2}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+      "id": 10,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, chat_type) (rate(agenticrag_llm_request_duration_seconds_bucket{operation=\"completion\", stream=\"true\"}[5m])))",
+          "legendFormat": "p50 {{chat_type}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, chat_type) (rate(agenticrag_llm_request_duration_seconds_bucket{operation=\"completion\", stream=\"true\"}[5m])))",
+          "legendFormat": "p95 {{chat_type}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Chat/Stream Completion Latency (p50/p95) by Mode",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
@@ -202,5 +246,5 @@
   "timezone": "browser",
   "title": "RunaxAI - UX & Latency",
   "uid": "agenticrag-ux-v1",
-  "version": 2
+  "version": 3
 }
