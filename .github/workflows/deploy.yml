@@ -6,6 +6,9 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+  # Manual trigger — used by scripts/deploy.sh after syncing secrets, and to
+  # deploy secret-only changes (which never touch tracked files).
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -216,6 +219,34 @@ jobs:
         run: |
           kubectl get secret helm-values-secrets -n arc-runners \
             -o jsonpath='{.data.values-secrets\.yaml}' | base64 -d > /tmp/values-secrets.yaml
+
+      # Guard: if the configured orchestrator model points at a provider whose
+      # API key is blank in the synced secret, fail the deploy here with a clear
+      # message instead of shipping a pod that 401s at runtime. Catches a missed
+      # scripts/sync-helm-secrets.sh.
+      - name: Verify provider secret for orchestrator model
+        run: |
+          model=$(grep -E '^[[:space:]]*orchestratorModel:' helm/agenticrag/values.prod.yaml \
+            | head -1 | sed -E 's/^[[:space:]]*orchestratorModel:[[:space:]]*//; s/^["'"'"']//; s/["'"'"'][[:space:]]*$//')
+          if [ -z "$model" ]; then
+            echo "no orchestratorModel set in values.prod.yaml; app uses its built-in default. skipping guard."
+            exit 0
+          fi
+          case "$model" in
+            openrouter/*) key=openrouterApiKey ;;
+            openai/*|gpt-*) key=openaiApiKey ;;
+            anthropic/*|claude-*) key=anthropicApiKey ;;
+            gemini/*) key=geminiApiKey ;;
+            grok/*|xai/*|grok-*) key=xaiApiKey ;;
+            *) echo "model '$model' needs no hosted-provider key (e.g. ollama). skipping guard."; exit 0 ;;
+          esac
+          val=$(grep -E "^[[:space:]]*${key}:" /tmp/values-secrets.yaml | head -1 \
+            | sed -E "s/^[[:space:]]*${key}:[[:space:]]*//; s/^[\"']//; s/[\"'][[:space:]]*$//")
+          if [ -z "$val" ]; then
+            echo "::error::orchestratorModel='$model' requires secret '$key', but it is empty/missing in helm-values-secrets. Run scripts/sync-helm-secrets.sh (or scripts/deploy.sh) and redeploy."
+            exit 1
+          fi
+          echo "secret guard ok: '$key' is present for orchestratorModel='$model'"
 
       - name: Helm upgrade (digest-pinned)
         env:
