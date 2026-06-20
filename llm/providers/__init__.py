@@ -5,6 +5,7 @@ from llm.providers.gemini_provider import GeminiProvider
 from llm.providers.grok_provider import GrokProvider
 from llm.providers.ollama_provider import OllamaProvider
 from llm.providers.openai_provider import OpenAIProvider
+from llm.providers.openrouter_provider import OpenRouterProvider
 
 PROVIDER_BUILDERS = {
     "openai": OpenAIProvider,
@@ -12,5 +13,6 @@ PROVIDER_BUILDERS = {
     "gemini": GeminiProvider,
     "grok": GrokProvider,
     "ollama": OllamaProvider,
+    "openrouter": OpenRouterProvider,
 }
 
