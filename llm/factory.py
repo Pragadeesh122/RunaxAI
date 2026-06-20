@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -10,6 +11,22 @@ from llm.providers import PROVIDER_BUILDERS
 
 DEFAULT_CHAT_MODEL = "openai/gpt-5.4-mini"
 DEFAULT_EMBEDDING_MODEL = "openai/text-embedding-3-large"
+
+# Model used by the general-chat orchestrator and the intent router. Single
+# source of truth so the default is not duplicated across modules. Override in
+# any environment via the ORCHESTRATOR_MODEL env var (wired through the Helm
+# chart's config.orchestratorModel).
+DEFAULT_ORCHESTRATOR_MODEL = "gpt-5.4"
+
+
+def get_orchestrator_model() -> str:
+    """Resolve the orchestrator model from the environment.
+
+    Falls back to DEFAULT_ORCHESTRATOR_MODEL when ORCHESTRATOR_MODEL is unset or
+    blank — a blank env var (e.g. an unset Helm value rendered as "") must not
+    blank out the model.
+    """
+    return (os.getenv("ORCHESTRATOR_MODEL") or "").strip() or DEFAULT_ORCHESTRATOR_MODEL
 
 PROVIDER_ALIASES = {
     "openai": "openai",

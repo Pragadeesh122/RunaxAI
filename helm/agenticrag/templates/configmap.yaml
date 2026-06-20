@@ -28,3 +28,6 @@ data:
   FRONTEND_URL: {{ include "agenticrag.frontendUrl" . | quote }}
   COOKIE_DOMAIN: {{ .Values.config.cookieDomain | default "" | quote }}
   ENABLE_API_DOCS: {{ .Values.config.enableApiDocs | default "false" | quote }}
+  {{- with .Values.config.orchestratorModel }}
+  ORCHESTRATOR_MODEL: {{ . | quote }}
+  {{- end }}

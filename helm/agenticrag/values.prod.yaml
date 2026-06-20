@@ -130,6 +130,7 @@ config:
   corsAllowLocalhostRegex: "false"
   logLevel: "INFO"
   cookieDomain: "runaxai.com"
+  orchestratorModel: "openrouter/deepseek/deepseek-v4-flash"
 
 # ---------------------------------------------------------------------------
 # Cloudflare Tunnel — replaces DDNS + port forwarding

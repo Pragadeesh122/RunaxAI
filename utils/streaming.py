@@ -1,13 +1,11 @@
 import re
 import sys
 import logging
-import os
 from clients import llm_client
 from tools import tools
-from llm.factory import get_llm_registry
+from llm.factory import get_llm_registry, get_orchestrator_model
 
 logger = logging.getLogger("orchestrator")
-ORCHESTRATOR_MODEL = os.getenv("ORCHESTRATOR_MODEL", "gpt-5.4")
 _STREAM_USAGE_PROVIDERS = {"openai", "grok"}
 
 # Matches any URL carrying an AWS/MinIO presigned signature. We never want
@@ -73,7 +71,7 @@ def stream_response(messages, model=None, use_tools=True, tools_override=None):
     `tools_override` (when provided) replaces the global tool list — used by
     agent-scoped orchestrators that expose only a subset of tools.
     """
-    resolved_model = model or ORCHESTRATOR_MODEL
+    resolved_model = model or get_orchestrator_model()
     kwargs = {
         "model": resolved_model,
         "messages": messages,
@@ -174,7 +172,7 @@ def iter_response(messages, model=None, use_tools=True, tools_override=None):
     `tools_override` (when provided) replaces the global tool list — used by
     agent-scoped orchestrators that expose only a subset of tools.
     """
-    resolved_model = model or ORCHESTRATOR_MODEL
+    resolved_model = model or get_orchestrator_model()
     kwargs = {
         "model": resolved_model,
         "messages": messages,

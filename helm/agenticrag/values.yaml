@@ -271,6 +271,10 @@ config:
   otelEnabled: "true"
   otelExporterEndpoint: ""  # auto-computed if monitoring.tempo.enabled
   documentIngestMode: "worker"
+  # Model for the general-chat orchestrator + intent router. Leave empty to use
+  # the app default (gpt-5.4). Set a provider-prefixed string to switch, e.g.
+  # "openrouter/deepseek/deepseek-v4-flash". Maps to the ORCHESTRATOR_MODEL env var.
+  orchestratorModel: ""
   corsAllowedOrigins: "http://localhost:3000"
   corsAllowLocalhostRegex: "false"
   # Auto-generated FastAPI docs (/docs, /redoc, /openapi.json). Off in prod
