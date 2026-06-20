@@ -1,0 +1,149 @@
+name: Quality eval (advisory)
+
+# Runs the RAG quality eval harness end-to-end against the local stack
+# (Postgres + Redis + MinIO via compose) plus hosted Pinecone and an LLM key.
+#
+# Advisory: this job never blocks a merge. It is manual + scheduled so that
+# regressions in retrieval/answer quality surface as a visible trend without
+# gating PRs on external services and LLM spend. The fast, always-on guardrail
+# is the eval unit-test suite in pr.yml (`tests/test_eval_metrics.py`,
+# `tests/test_eval_judge.py`).
+#
+# Requires repo secrets PINECONE_API_KEY and OPENAI_API_KEY. When they are
+# absent (e.g. on a fork) the job no-ops instead of failing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: "Dataset under evals/datasets/ to run"
+        required: false
+        default: "smoke"
+  schedule:
+    # Weekly, Monday 06:00 UTC — a low-traffic drift check.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eval-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    name: RAG quality eval
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    # Advisory: surface results, never fail the workflow run.
+    continue-on-error: true
+    env:
+      DATASET: ${{ github.event.inputs.dataset || 'smoke' }}
+      # Local infra creds (non-secret; only ever bound to throwaway containers).
+      DB_NAME: agenticrag
+      DB_ADMIN_USER: admin
+      DB_ADMIN_PASSWORD: evalpw
+      DB_USER: reader
+      DB_PASSWORD: evalpw
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_SECURE: "false"
+      OTEL_ENABLED: "false"
+      DOCUMENT_INGEST_MODE: inline
+    steps:
+      - name: Check for required secrets
+        id: guard
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ] || [ -z "$PINECONE_API_KEY" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "### Quality eval skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Missing PINECONE_API_KEY and/or OPENAI_API_KEY repo secrets." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: steps.guard.outputs.run == 'true'
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        if: steps.guard.outputs.run == 'true'
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Write .env for the stack
+        if: steps.guard.outputs.run == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+        run: |
+          {
+            echo "OPENAI_API_KEY=$OPENAI_API_KEY"
+            echo "PINECONE_API_KEY=$PINECONE_API_KEY"
+            echo "DB_NAME=$DB_NAME"
+            echo "DB_ADMIN_USER=$DB_ADMIN_USER"
+            echo "DB_ADMIN_PASSWORD=$DB_ADMIN_PASSWORD"
+            echo "DB_USER=$DB_USER"
+            echo "DB_PASSWORD=$DB_PASSWORD"
+            echo "DB_HOST=$DB_HOST"
+            echo "DB_PORT=$DB_PORT"
+            echo "REDIS_HOST=$REDIS_HOST"
+            echo "REDIS_PORT=$REDIS_PORT"
+            echo "MINIO_ENDPOINT=$MINIO_ENDPOINT"
+            echo "MINIO_ACCESS_KEY=$MINIO_ACCESS_KEY"
+            echo "MINIO_SECRET_KEY=$MINIO_SECRET_KEY"
+            echo "MINIO_SECURE=$MINIO_SECURE"
+          } > .env
+
+      - name: Start infra (Postgres, Redis, MinIO)
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          docker compose up -d postgres redis minio minio-setup
+          # Wait for Postgres + MinIO to accept connections.
+          for i in $(seq 1 30); do
+            if docker compose exec -T postgres pg_isready -U "$DB_ADMIN_USER" -d "$DB_NAME" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Install deps + migrate
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+
+      - name: Run quality eval
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          uv run python evals/run_eval.py --dataset "$DATASET" | tee eval.out
+
+      - name: Append summary
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          echo "### Quality eval — \`$DATASET\`" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          sed -n '/Eval run/,$p' eval.out >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reports
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: eval-reports
+          path: evals/reports/
+          if-no-files-found: warn
+
+      - name: Tear down infra
+        if: always() && steps.guard.outputs.run == 'true'
+        run: docker compose down -v

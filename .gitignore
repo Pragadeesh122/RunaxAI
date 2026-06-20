@@ -39,5 +39,7 @@ test-screenshots
 design_audit_screenshots/
 
 # Eval reports (generated)
-evals/reports/helm/values-secrets.yaml
+evals/reports/
+
+# Helm secrets
 helm/values-secrets.yaml
