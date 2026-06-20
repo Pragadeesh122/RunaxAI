@@ -21,8 +21,10 @@ import { Lightning } from '@phosphor-icons/react/dist/ssr/Lightning';
 import { ChatTeardropDots } from '@phosphor-icons/react/dist/ssr/ChatTeardropDots';
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { X } from '@phosphor-icons/react/dist/ssr/X';
+import { WarningCircle } from '@phosphor-icons/react/dist/ssr/WarningCircle';
 import { RunaxLogo } from './ChatArea';
 import SidebarAccountFooter from './SidebarAccountFooter';
+import { PROJECT_DOC_ACCEPT, PROJECT_DOC_MAX_MB, PROJECT_DOC_SUPPORTED_LABEL } from '@/lib/upload';
 import type { Project, AgentInfo, Session, ProjectSearchResult, User } from '@/lib/types';
 
 // Agents differentiate by glyph, not colour (skill §3 Rule 2 — Lila Ban).
@@ -79,6 +81,8 @@ interface ProjectSidebarProps {
   onReingestDocument: (docId: string, file: File) => void;
   onDeleteDocument: (docId: string) => void;
   isUploading: boolean;
+  uploadError?: string | null;
+  onDismissUploadError?: () => void;
   reingestingDocumentId: string | null;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
@@ -104,6 +108,8 @@ export default function ProjectSidebar({
   onReingestDocument,
   onDeleteDocument,
   isUploading,
+  uploadError,
+  onDismissUploadError,
   reingestingDocumentId,
   searchQuery,
   onSearchQueryChange,
@@ -375,14 +381,14 @@ export default function ProjectSidebar({
               ref={fileInputRef}
               type="file"
               onChange={handleFileChange}
-              accept=".pdf,.txt,.md,.csv,.docx"
+              accept={PROJECT_DOC_ACCEPT}
               className="hidden"
             />
             <input
               ref={replaceFileInputRef}
               type="file"
               onChange={handleReplaceFileChange}
-              accept=".pdf,.txt,.md,.csv,.docx"
+              accept={PROJECT_DOC_ACCEPT}
               className="hidden"
             />
             {isUploading ? (
@@ -391,10 +397,27 @@ export default function ProjectSidebar({
               <FileArrowUp size={20} className="text-zinc-500" />
             )}
             <span className="text-xs text-zinc-500">
-              {isUploading ? 'Uploading…' : 'Drop a PDF, CSV, MD, or DOCX'}
+              {isUploading ? 'Uploading…' : `Drop a ${PROJECT_DOC_SUPPORTED_LABEL} file`}
             </span>
-            <span className="text-[10px] text-zinc-600">Up to 25 MB per file</span>
+            <span className="text-[10px] text-zinc-600">Up to {PROJECT_DOC_MAX_MB} MB per file</span>
           </div>
+
+          {/* Upload error */}
+          {uploadError && (
+            <div className="mb-2 flex items-start gap-2 px-3 py-2 rounded-lg border border-red-500/25 bg-red-500/10">
+              <WarningCircle size={15} className="text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="flex-1 text-[11px] leading-relaxed text-red-300">{uploadError}</p>
+              {onDismissUploadError && (
+                <button
+                  onClick={onDismissUploadError}
+                  aria-label="Dismiss upload error"
+                  className="p-0.5 rounded text-red-400/70 hover:text-red-300 transition-colors duration-100 shrink-0"
+                >
+                  <X size={12} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Document list */}
           <ul className="flex flex-col gap-0.5">
@@ -404,9 +427,17 @@ export default function ProjectSidebar({
                   <FileTypeIcon type={doc.fileType} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-zinc-300 truncate">{doc.filename}</p>
-                    <p className="text-[11px] text-zinc-600">
-                      {formatFileSize(doc.fileSize)}
-                      {doc.status === 'ready' && ` \u00B7 ${doc.chunkCount} chunks`}
+                    <p
+                      className={`text-[11px] truncate ${
+                        doc.status === 'failed' ? 'text-red-400/80' : 'text-zinc-600'
+                      }`}
+                    >
+                      {doc.status === 'ready' &&
+                        `${formatFileSize(doc.fileSize)} \u00B7 ${doc.chunkCount} chunks`}
+                      {(doc.status === 'uploading' || doc.status === 'processing') &&
+                        'Indexing\u2026 ready to chat shortly'}
+                      {doc.status === 'failed' &&
+                        (doc.errorMessage || 'Indexing failed \u2014 try replacing the file')}
                     </p>
                   </div>
                   <StatusBadge status={doc.status} />

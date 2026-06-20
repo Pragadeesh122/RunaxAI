@@ -6,6 +6,8 @@ import { TrashIcon } from '@phosphor-icons/react/dist/ssr/Trash';
 import { ChatTeardropDots } from '@phosphor-icons/react/dist/ssr/ChatTeardropDots';
 import { FolderSimple } from '@phosphor-icons/react/dist/ssr/FolderSimple';
 import { Plus } from '@phosphor-icons/react/dist/ssr/Plus';
+import { SpinnerGap } from '@phosphor-icons/react/dist/ssr/SpinnerGap';
+import { FileArrowUp } from '@phosphor-icons/react/dist/ssr/FileArrowUp';
 import { RunaxLogo } from './ChatArea';
 import SidebarAccountFooter from './SidebarAccountFooter';
 import { createProject, deleteProject } from '@/lib/api';
@@ -134,21 +136,34 @@ export default function Sidebar({
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const handleCreateProject = useCallback(async () => {
     const name = newProjectName.trim();
-    if (!name) return;
+    if (!name || creatingProject) return;
+    setCreatingProject(true);
+    setCreateError(null);
     try {
       const project = await createProject(name);
       setProjects((prev) => [project, ...prev]);
       setNewProjectName('');
       setShowNewProject(false);
-      // Navigate to the new project
+      // Navigate to the new project so the user can upload their first document.
       window.location.href = `/projects/${project.id}`;
     } catch (err) {
       console.error('Failed to create project:', err);
+      setCreateError(
+        err instanceof Error ? err.message : 'Could not create project. Please try again.'
+      );
+      setCreatingProject(false);
     }
-  }, [newProjectName]);
+  }, [newProjectName, creatingProject]);
+
+  const openNewProject = useCallback(() => {
+    setCreateError(null);
+    setShowNewProject(true);
+  }, []);
 
   const handleDeleteProject = useCallback(async (id: string) => {
     try {
@@ -190,7 +205,7 @@ export default function Sidebar({
               Projects
             </p>
             <button
-              onClick={() => setShowNewProject((v) => !v)}
+              onClick={() => (showNewProject ? setShowNewProject(false) : openNewProject())}
               aria-label="New project"
               className="p-0.5 rounded text-zinc-500 hover:text-zinc-300 transition-colors duration-100"
             >
@@ -200,20 +215,30 @@ export default function Sidebar({
 
           {showNewProject && (
             <div className="px-2 mb-1.5">
-              <input
-                autoFocus
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateProject();
-                  if (e.key === 'Escape') {
-                    setShowNewProject(false);
-                    setNewProjectName('');
-                  }
-                }}
-                placeholder="Project name..."
-                className="w-full px-2.5 py-1.5 text-sm bg-white/5 border border-white/10 rounded-lg text-zinc-200 placeholder-zinc-600 outline-none focus:border-emerald-400/40"
-              />
+              <div className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={newProjectName}
+                  disabled={creatingProject}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCreateProject();
+                    if (e.key === 'Escape') {
+                      setShowNewProject(false);
+                      setNewProjectName('');
+                      setCreateError(null);
+                    }
+                  }}
+                  placeholder="Project name..."
+                  className="flex-1 px-2.5 py-1.5 text-sm bg-white/5 border border-white/10 rounded-lg text-zinc-200 placeholder-zinc-600 outline-none focus:border-emerald-400/40 disabled:opacity-60"
+                />
+                {creatingProject && (
+                  <SpinnerGap size={15} className="text-emerald-400/80 animate-spin shrink-0" aria-hidden="true" />
+                )}
+              </div>
+              {createError && (
+                <p className="mt-1 px-1 text-[11px] text-red-300">{createError}</p>
+              )}
             </div>
           )}
 
@@ -246,7 +271,16 @@ export default function Sidebar({
           </ul>
 
           {projects.length === 0 && !showNewProject && (
-            <p className="px-3 text-xs text-zinc-600">No projects yet</p>
+            <button
+              onClick={openNewProject}
+              className="mt-1 w-full flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-dashed border-white/10 hover:border-emerald-400/40 hover:bg-emerald-500/5 transition-all duration-150 text-center group"
+            >
+              <FileArrowUp size={20} className="text-emerald-400/70" aria-hidden="true" />
+              <span className="text-xs font-medium text-zinc-300">Create your first project</span>
+              <span className="text-[11px] leading-relaxed text-zinc-600">
+                Upload documents and chat with them
+              </span>
+            </button>
           )}
         </div>
 

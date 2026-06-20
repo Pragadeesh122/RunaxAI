@@ -6,8 +6,14 @@ import { BookOpenText } from '@phosphor-icons/react/dist/ssr/BookOpenText';
 import { Table } from '@phosphor-icons/react/dist/ssr/Table';
 import { Compass } from '@phosphor-icons/react/dist/ssr/Compass';
 import { Sparkle } from '@phosphor-icons/react/dist/ssr/Sparkle';
+import { FileArrowUp } from '@phosphor-icons/react/dist/ssr/FileArrowUp';
+import { SpinnerGap } from '@phosphor-icons/react/dist/ssr/SpinnerGap';
+import { WarningCircle } from '@phosphor-icons/react/dist/ssr/WarningCircle';
+import { ListBullets } from '@phosphor-icons/react/dist/ssr/ListBullets';
+import { Question } from '@phosphor-icons/react/dist/ssr/Question';
 import { ThreadPrimitive } from '@assistant-ui/react';
 import type { ChatAttachment, Message, ProjectDocument } from '@/lib/types';
+import { PROJECT_DOC_ACCEPT, PROJECT_DOC_MAX_MB, PROJECT_DOC_SUPPORTED_LABEL } from '@/lib/upload';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 
@@ -37,6 +43,31 @@ const SUGGESTIONS: SuggestionCard[] = [
     label: 'What can you do?',
     query: 'What tools and capabilities do you have?',
     icon: <Sparkle size={20} className="text-emerald-400/80" aria-hidden="true" />,
+  },
+];
+
+// Shown once a project has at least one indexed document — orients the user
+// toward their first grounded answer instead of generic tool prompts.
+const DOC_SUGGESTIONS: SuggestionCard[] = [
+  {
+    label: 'Summarize the key points',
+    query: 'Summarize the key points from my documents.',
+    icon: <ListBullets size={20} className="text-emerald-400" aria-hidden="true" />,
+  },
+  {
+    label: 'Ask a question about your documents',
+    query: 'Based on my documents, ',
+    icon: <Question size={20} className="text-emerald-400" aria-hidden="true" />,
+  },
+  {
+    label: 'Search the knowledge base',
+    query: 'Search the knowledge base for information about ',
+    icon: <BookOpenText size={20} className="text-emerald-400" aria-hidden="true" />,
+  },
+  {
+    label: 'Browse the web',
+    query: 'Browse the web and find information about ',
+    icon: <Compass size={20} className="text-emerald-400" aria-hidden="true" />,
   },
 ];
 
@@ -93,6 +124,9 @@ interface ChatAreaProps {
   onStop?: () => void;
   projectId?: string;
   projectDocuments?: ProjectDocument[];
+  onUploadFile?: (file: File) => void;
+  isUploading?: boolean;
+  uploadError?: string | null;
   attachments?: ChatAttachment[];
   onAttachmentsChange?: (next: ChatAttachment[]) => void;
   sessionFileCount?: number;
@@ -110,12 +144,17 @@ export default function ChatArea({
   onStop,
   projectId,
   projectDocuments,
+  onUploadFile,
+  isUploading = false,
+  uploadError,
   attachments,
   onAttachmentsChange,
   sessionFileCount = 0,
   sessionBytes = 0,
 }: ChatAreaProps) {
   const inputRef = useRef<HTMLDivElement>(null);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
+  const [heroDragOver, setHeroDragOver] = useState(false);
 
   // Keyboard shortcuts: / to focus input, Escape to blur
   useEffect(() => {
@@ -227,6 +266,25 @@ export default function ChatArea({
 
   const isEmpty = messages.length === 0;
 
+  // Project-aware first-run state. In a project context we guide the user from
+  // an empty project -> first upload -> first grounded answer.
+  const isProjectContext = Boolean(projectId);
+  const docs = projectDocuments ?? [];
+  const readyDocs = docs.filter((d) => d.status === 'ready');
+  const indexingDocs = docs.filter(
+    (d) => d.status === 'processing' || d.status === 'uploading'
+  );
+  const needsFirstDocument =
+    isProjectContext && Boolean(onUploadFile) && readyDocs.length === 0;
+  const suggestions = readyDocs.length > 0 ? DOC_SUGGESTIONS : SUGGESTIONS;
+
+  const handleHeroFile = useCallback(
+    (file: File | undefined) => {
+      if (file && onUploadFile) onUploadFile(file);
+    },
+    [onUploadFile]
+  );
+
   return (
     <div className="flex flex-col flex-1 min-h-0 relative">
       {/* Messages area */}
@@ -237,7 +295,90 @@ export default function ChatArea({
         aria-live="polite"
         aria-label="Chat messages"
       >
-        {isEmpty ? (
+        {isEmpty && needsFirstDocument ? (
+          /* First-run: empty project — guide the user to upload their first doc */
+          <div className="flex flex-col items-center justify-center min-h-full px-4 py-10">
+            <div className="w-full max-w-xl flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-600/20 to-emerald-600/20 border border-emerald-500/20 flex items-center justify-center">
+                  <RunaxLogo size={36} />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight mb-1.5">
+                    {indexingDocs.length > 0
+                      ? 'Indexing your document…'
+                      : 'Add a document to get started'}
+                  </h1>
+                  <p className="text-sm text-zinc-500 max-w-sm leading-relaxed">
+                    {indexingDocs.length > 0
+                      ? 'This usually takes a few seconds. You can start chatting as soon as it’s ready.'
+                      : `Upload a ${PROJECT_DOC_SUPPORTED_LABEL} file and RunaxAI will answer questions grounded in it.`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Upload dropzone */}
+              <input
+                ref={heroFileInputRef}
+                type="file"
+                onChange={(e) => {
+                  handleHeroFile(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+                accept={PROJECT_DOC_ACCEPT}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => heroFileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setHeroDragOver(true);
+                }}
+                onDragLeave={() => setHeroDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setHeroDragOver(false);
+                  handleHeroFile(e.dataTransfer.files?.[0]);
+                }}
+                disabled={isUploading}
+                className={`w-full flex flex-col items-center gap-2 px-6 py-8 rounded-2xl border border-dashed transition-all duration-150 ${
+                  heroDragOver
+                    ? 'border-emerald-400/60 bg-emerald-500/10'
+                    : 'border-white/12 hover:border-white/25 hover:bg-white/3'
+                } ${isUploading ? 'pointer-events-none opacity-70' : ''}`}
+              >
+                {isUploading || indexingDocs.length > 0 ? (
+                  <SpinnerGap size={26} className="text-emerald-400/80 animate-spin" aria-hidden="true" />
+                ) : (
+                  <FileArrowUp size={26} className="text-emerald-400/70" aria-hidden="true" />
+                )}
+                <span className="text-sm font-medium text-zinc-300">
+                  {isUploading
+                    ? 'Uploading…'
+                    : indexingDocs.length > 0
+                      ? 'Indexing…'
+                      : 'Drop a file here, or click to browse'}
+                </span>
+                <span className="text-[11px] text-zinc-600">
+                  {PROJECT_DOC_SUPPORTED_LABEL} · up to {PROJECT_DOC_MAX_MB} MB
+                </span>
+              </button>
+
+              {uploadError && (
+                <div className="w-full flex items-start gap-2 px-4 py-2.5 rounded-xl border border-red-500/25 bg-red-500/10">
+                  <WarningCircle size={16} className="text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
+                  <p className="flex-1 text-xs leading-relaxed text-red-300">{uploadError}</p>
+                </div>
+              )}
+
+              <p className="text-[11px] text-zinc-600 text-center max-w-sm">
+                Prefer to explore first? You can also just start chatting below — RunaxAI can
+                search the web and query databases without a document.
+              </p>
+            </div>
+          </div>
+        ) : isEmpty ? (
           /* Welcome / empty state */
           <div className="flex flex-col items-center justify-center min-h-full px-4 py-10">
             <div className="w-full max-w-xl flex flex-col items-center gap-6">
@@ -251,14 +392,18 @@ export default function ChatArea({
                     RunaxAI
                   </h1>
                   <p className="text-sm text-zinc-500 max-w-sm leading-relaxed">
-                    AI with full tool access — document search, database queries, and web browsing
+                    {readyDocs.length > 0
+                      ? `Ask anything about your ${readyDocs.length} indexed document${
+                          readyDocs.length === 1 ? '' : 's'
+                        } — or use web search and database queries.`
+                      : 'AI with full tool access — document search, database queries, and web browsing'}
                   </p>
                 </div>
               </div>
 
               {/* Suggestion cards */}
               <div className="grid grid-cols-2 gap-2.5 w-full">
-                {SUGGESTIONS.map((card) => (
+                {suggestions.map((card) => (
                   <button
                     key={card.label}
                     onClick={() => onInputChange(card.query)}
