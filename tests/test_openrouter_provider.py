@@ -37,3 +37,4 @@ def test_registry_routes_openrouter_prefix_to_provider():
 def test_or_alias_routes_to_openrouter():
     resolved = get_llm_registry().resolve_chat("or/deepseek/deepseek-v4-flash")
     assert resolved.provider.name == "openrouter"
+    assert resolved.model == "deepseek/deepseek-v4-flash"
