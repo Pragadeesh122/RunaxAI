@@ -45,6 +45,8 @@ jobs:
               - 'tasks/**'
               - 'observability/**'
               - 'alembic/**'
+              - 'evals/**'
+              - 'tests/**'
               - 'pyproject.toml'
               - 'uv.lock'
               - 'Dockerfile'
