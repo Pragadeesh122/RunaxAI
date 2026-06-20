@@ -21,6 +21,8 @@ PROVIDER_ALIASES = {
     "xai": "grok",
     "ollama": "ollama",
     "llama": "ollama",
+    "openrouter": "openrouter",
+    "or": "openrouter",
 }
 
 OLLAMA_MODEL_HINTS = (
