@@ -15,20 +15,20 @@
     package-manager-detector "^1.3.0"
     tinyexec "^1.0.1"
 
-"@assistant-ui/core@^0.2.16":
-  version "0.2.16"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/core/-/core-0.2.16.tgz#e5813a3d0f8174e2ef3b93afca39ddb34f5e65cf"
-  integrity sha512-/zwAQt5H6W9qk9sK1dGwB9U7g+Tz/bp4q8XVEyp4TviZIvJNNGqrl9vVbior+p3fA4uUMJSSoKtG0Uub60e41A==
+"@assistant-ui/core@^0.2.18":
+  version "0.2.18"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/core/-/core-0.2.18.tgz#cf0c95a7cfaee44db3b542aea5b3ce554eee3790"
+  integrity sha512-qqK+qFmZ3fIpsBUz9QLHpLq2t4IOhs9JQIN5Nm0TLyeg4iytbd6d7V7fax01hEqr/ptPzFdAGR/nefPKr5SgyQ==
   dependencies:
     assistant-stream "^0.3.23"
     nanoid "^5.1.11"
 
-"@assistant-ui/react@^0.14.21":
-  version "0.14.21"
-  resolved "https://registry.yarnpkg.com/@assistant-ui/react/-/react-0.14.21.tgz#cdaa76d2b0a9cb6b3995b33478c5b79b5acc26b1"
-  integrity sha512-gHeCG13mo9bwXrl/f6S+ZUVDlb1VV9ExOd6/lxqQeWxebVyiafxwiRB3nCOBKLyX+HcB1LZ+fdVoeYJyUKoZIQ==
+"@assistant-ui/react@^0.14.23":
+  version "0.14.23"
+  resolved "https://registry.yarnpkg.com/@assistant-ui/react/-/react-0.14.23.tgz#327e09b581d152c8556a28840aedd11c12938df5"
+  integrity sha512-/aZmvnQXgEGNbBkb9xCIScvQv45PrxBToHHwOuuRBO0t6ANR/nBH04zOgMO+6UyTBQQbavgzVoCmy0S85qcoZw==
   dependencies:
-    "@assistant-ui/core" "^0.2.16"
+    "@assistant-ui/core" "^0.2.18"
     "@assistant-ui/store" "^0.2.18"
     "@assistant-ui/tap" "^0.9.2"
     "@radix-ui/primitive" "^1.1.4"
@@ -1888,12 +1888,12 @@
   resolved "https://registry.npmjs.org/@types/ms/-/ms-2.1.0.tgz"
   integrity sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==
 
-"@types/node@25.9.3":
-  version "25.9.3"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-25.9.3.tgz#11dfe7a33e68fa5c560f0aa76cc5595621ef26b9"
-  integrity sha512-603BddQMv3pUcr4U2dhujk83N2tTDVr/34wII2B6bJy6g+8WD6yUb11jszNs0gdi4PesVWl7ABt8nYMVpnLUcg==
+"@types/node@26.0.0":
+  version "26.0.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-26.0.0.tgz#d4aece9e9412e9f2008d59bc2d74f5279316b665"
+  integrity sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA==
   dependencies:
-    undici-types ">=7.24.0 <7.24.7"
+    undici-types "~8.3.0"
 
 "@types/react-dom@^19":
   version "19.2.3"
@@ -6296,10 +6296,10 @@ unbox-primitive@^1.1.0:
     has-symbols "^1.1.0"
     which-boxed-primitive "^1.1.1"
 
-"undici-types@>=7.24.0 <7.24.7":
-  version "7.24.6"
-  resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-7.24.6.tgz#61275b485d7fd4e9d269c7cf04ec2873c9cc0f91"
-  integrity sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==
+undici-types@~8.3.0:
+  version "8.3.0"
+  resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-8.3.0.tgz#44e9fc9f3244648cdea35e4f9bb2d681e9410809"
+  integrity sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==
 
 unified@^11.0.0, unified@^11.0.5:
   version "11.0.5"
