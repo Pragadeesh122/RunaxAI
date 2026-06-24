@@ -43,6 +43,7 @@ import {
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import {convertMessage} from "@/lib/chatRuntime";
+import {validateUploadFile} from "@/lib/upload";
 import {
   appendDataPart,
   appendReasoningPart,
@@ -118,6 +119,7 @@ export default function ProjectPage({
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [reingestingDocumentId, setReingestingDocumentId] = useState<string | null>(null);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
@@ -204,6 +206,13 @@ export default function ProjectPage({
   const handleUploadFile = useCallback(
     async (file: File) => {
       if (!project) return;
+      // Pre-flight validation mirrors the backend so failures surface instantly.
+      const validationError = validateUploadFile(file);
+      if (validationError) {
+        setUploadError(validationError);
+        return;
+      }
+      setUploadError(null);
       setIsUploading(true);
       try {
         const doc = await uploadDocument(projectId, file);
@@ -212,12 +221,17 @@ export default function ProjectPage({
         );
       } catch (err) {
         console.error("Upload failed:", err);
+        setUploadError(
+          err instanceof Error ? err.message : "Upload failed. Please try again."
+        );
       } finally {
         setIsUploading(false);
       }
     },
     [project, projectId]
   );
+
+  const handleDismissUploadError = useCallback(() => setUploadError(null), []);
 
   const handleDeleteDocument = useCallback(
     async (docId: string) => {
@@ -929,6 +943,8 @@ export default function ProjectPage({
             onReingestDocument={handleReingestDocument}
             onDeleteDocument={handleDeleteDocument}
             isUploading={isUploading}
+            uploadError={uploadError}
+            onDismissUploadError={handleDismissUploadError}
             reingestingDocumentId={reingestingDocumentId}
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
@@ -1003,6 +1019,9 @@ export default function ProjectPage({
               onStop={handleStop}
               projectId={projectId}
               projectDocuments={project.documents}
+              onUploadFile={handleUploadFile}
+              isUploading={isUploading}
+              uploadError={uploadError}
             />
           </AssistantRuntimeProvider>
         </div>
