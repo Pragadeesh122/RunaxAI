@@ -52,46 +52,68 @@ def get_document_paths(dataset: str) -> list[Path]:
     return sorted(docs_dir.glob("*"))
 
 
-def _create_eval_project(run_id: str) -> tuple[str, any]:
-    """Create an ephemeral project for this eval run via SQLAlchemy.
+def _create_eval_project(run_id: str) -> tuple[str, str, any]:
+    """Create an ephemeral user + project for this eval run via SQLAlchemy.
 
-    Returns (project_id, engine) for cleanup.
+    The ``project`` table has a non-nullable FK to ``user.id`` (a UUID), so we
+    spin up a throwaway user for the run and tear it down in cleanup. Table
+    names are singular (``user``, ``project``) to match the live schema.
+
+    Returns (project_id, user_id, engine) for cleanup.
     """
     from sqlalchemy import create_engine, text
     from database.core import DATABASE_URL
 
     engine = create_engine(DATABASE_URL.replace("+asyncpg", "+psycopg2"))
     project_id = f"eval-{run_id}"
+    user_id = str(uuid.uuid4())
 
     with engine.begin() as conn:
+        # ``user`` is a reserved word in Postgres, so it must be quoted.
         conn.execute(
             text(
-                "INSERT INTO projects (id, name, description, status, user_id) "
-                "VALUES (:id, :name, :desc, :status, :user_id)"
+                'INSERT INTO "user" '
+                "(id, email, is_active, is_superuser, is_verified, created_at, updated_at) "
+                "VALUES (:id, :email, true, false, true, now(), now())"
+            ),
+            {"id": user_id, "email": f"eval-{run_id}@eval.local"},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO project "
+                "(id, user_id, name, description, status, created_at, updated_at) "
+                "VALUES (:id, :user_id, :name, :desc, :status, now(), now())"
             ),
             {
                 "id": project_id,
+                "user_id": user_id,
                 "name": f"eval-{run_id}",
                 "desc": "Ephemeral eval project",
                 "status": "active",
-                "user_id": "eval-system",
             },
         )
-    return project_id, engine
+    return project_id, user_id, engine
 
 
 def _ingest_documents(
     project_id: str,
     doc_paths: list[Path],
     config: dict,
-) -> int:
-    """Ingest eval documents and return total chunk count."""
+) -> tuple[int, dict[str, str]]:
+    """Ingest eval documents.
+
+    Returns (total_chunk_count, doc_id_to_filename). The map lets the retrieval
+    eval translate a retrieved chunk's ``document_id`` back to its original
+    dataset filename, which is what the expected-filename metrics compare
+    against (the vector store records ``source`` as the storage object name).
+    """
     from pipeline.ingestion import ingest_document
     from pipeline.storage import ensure_bucket, BUCKET_NAME
     from clients import minio_client
 
     ensure_bucket()
     total_chunks = 0
+    doc_id_to_filename: dict[str, str] = {}
 
     for doc_path in doc_paths:
         doc_id = str(uuid.uuid4())
@@ -108,13 +130,14 @@ def _ingest_documents(
             chunk_size=config.get("ingestion", {}).get("chunk_size", 2000),
             chunk_overlap=config.get("ingestion", {}).get("chunk_overlap", 300),
         )
+        doc_id_to_filename[doc_id] = doc_path.name
         total_chunks += result["chunk_count"]
         logger.info(
             f"ingested {doc_path.name}: {result['chunk_count']} chunks "
             f"({result['chunk_strategy']})"
         )
 
-    return total_chunks
+    return total_chunks, doc_id_to_filename
 
 
 def _wait_for_pinecone_consistency(project_id: str, expected_chunks: int, config: dict):
@@ -148,6 +171,7 @@ def _run_retrieval_eval(
     queries: list[dict],
     chunk_count: int,
     config: dict,
+    doc_id_to_filename: dict[str, str],
 ) -> list[dict]:
     """Run retrieval for each query and compute metrics."""
     from pipeline.retriever import retrieve
@@ -168,7 +192,13 @@ def _run_retrieval_eval(
             logger.error(f"retrieval failed for {q['id']}: {e}")
             retrieved = []
 
-        filenames = [r.get("source", "") for r in retrieved]
+        # Translate each chunk's document_id to its original dataset filename
+        # so expected-filename metrics (recall@k, mrr, ndcg) are meaningful.
+        # Fall back to the raw `source` when a chunk predates the ingest map.
+        filenames = [
+            doc_id_to_filename.get(r.get("document_id", ""), r.get("source", ""))
+            for r in retrieved
+        ]
         texts = [r.get("text", "") for r in retrieved]
         expected_files = set(q.get("expected_doc_filenames", []))
         expected_subs = q.get("expected_chunk_substrings", [])
@@ -349,7 +379,7 @@ def _generate_markdown_report(
     return "\n".join(lines)
 
 
-def _cleanup(project_id: str, engine, doc_paths: list[Path]):
+def _cleanup(project_id: str, user_id: str | None, engine, doc_paths: list[Path]):
     """Delete Pinecone namespace, DB rows, and MinIO objects."""
     errors = []
 
@@ -361,18 +391,24 @@ def _cleanup(project_id: str, engine, doc_paths: list[Path]):
     except Exception as e:
         errors.append(f"Pinecone cleanup: {e}")
 
-    # 2. Delete DB rows
+    # 2. Delete DB rows (singular table names; FK cascade also covers these,
+    #    but we delete explicitly so a partial failure is easy to read).
     try:
         from sqlalchemy import text
         with engine.begin() as conn:
             conn.execute(
-                text("DELETE FROM documents WHERE project_id = :pid"),
+                text("DELETE FROM document WHERE project_id = :pid"),
                 {"pid": project_id},
             )
             conn.execute(
-                text("DELETE FROM projects WHERE id = :pid"),
+                text("DELETE FROM project WHERE id = :pid"),
                 {"pid": project_id},
             )
+            if user_id:
+                conn.execute(
+                    text('DELETE FROM "user" WHERE id = :uid'),
+                    {"uid": user_id},
+                )
         logger.info(f"deleted DB rows for {project_id}")
     except Exception as e:
         errors.append(f"DB cleanup: {e}")
@@ -414,22 +450,25 @@ def main():
     logger.info(f"loaded {len(queries)} queries, {len(doc_paths)} documents from '{args.dataset}'")
 
     project_id = None
+    user_id = None
     engine = None
 
     try:
-        # 1. Create ephemeral project
-        project_id, engine = _create_eval_project(run_id)
+        # 1. Create ephemeral user + project
+        project_id, user_id, engine = _create_eval_project(run_id)
         logger.info(f"created eval project: {project_id}")
 
         # 2. Ingest documents
-        total_chunks = _ingest_documents(project_id, doc_paths, config)
+        total_chunks, doc_id_to_filename = _ingest_documents(project_id, doc_paths, config)
         logger.info(f"ingested {total_chunks} total chunks")
 
         # 3. Wait for consistency
         _wait_for_pinecone_consistency(project_id, total_chunks, config)
 
         # 4. Run retrieval eval
-        retrieval_results = _run_retrieval_eval(project_id, queries, total_chunks, config)
+        retrieval_results = _run_retrieval_eval(
+            project_id, queries, total_chunks, config, doc_id_to_filename
+        )
 
         # Attach project context for judge phase
         for ret in retrieval_results:
@@ -493,7 +532,7 @@ def main():
 
     finally:
         if project_id and engine:
-            _cleanup(project_id, engine, doc_paths)
+            _cleanup(project_id, user_id, engine, doc_paths)
 
 
 if __name__ == "__main__":
