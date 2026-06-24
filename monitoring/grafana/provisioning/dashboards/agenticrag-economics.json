@@ -278,6 +278,23 @@
       ],
       "title": "Usage Missing / Estimated Rate",
       "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Chat turns refused by the per-session spend guardrail (MAX_SESSION_TOKENS ceiling), by chat mode. A non-zero count means sessions are hitting their token budget.",
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 29},
+      "id": 11,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["sum"]}},
+      "targets": [
+        {
+          "expr": "sum by (chat_type) (increase(agenticrag_session_budget_blocked_total[$__range]))",
+          "legendFormat": "{{chat_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Session Spend Guardrail Blocks",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
@@ -289,5 +306,5 @@
   "timezone": "browser",
   "title": "RunaxAI - Economics",
   "uid": "agenticrag-econ-v1",
-  "version": 2
+  "version": 3
 }

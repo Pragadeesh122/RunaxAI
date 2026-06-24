@@ -4,11 +4,13 @@ import logging
 import os
 import random
 import threading
+import time
 
 from pipeline.embedder import embed_query_dense, embed_query_sparse
 from pipeline.pinecone_helpers import query_vectors
 from pipeline.query_rewrite import generate_hyde_passage
 from pipeline.retrieval_cache import get_cached_retrieval, cache_retrieval
+from observability.metrics import observe_retrieval_latency
 from observability.spans import retrieval_span
 
 logger = logging.getLogger("pipeline.retriever")
@@ -63,6 +65,7 @@ def retrieve(
           - results: list of {"id", "score", "text", "source", "page", "document_id"}
           - info: {"cache_hit": bool} — whether results came from the semantic cache
     """
+    started = time.perf_counter()
     with retrieval_span(
         span_name="retrieval.pipeline",
         **{"retrieval.top_k": top_k, "retrieval.alpha": alpha},
@@ -75,6 +78,9 @@ def retrieve(
             if span is not None:
                 span.set_attribute("cache.hit", True)
                 span.set_attribute("result_count", len(cached))
+            observe_retrieval_latency(
+                cache_hit=True, duration_seconds=time.perf_counter() - started
+            )
             if CACHE_AUDIT_RATE > 0 and random.random() < CACHE_AUDIT_RATE:
                 _schedule_cache_audit(
                     project_id, query, cached, chunk_count, top_k, alpha, use_hyde
@@ -95,6 +101,9 @@ def retrieve(
         if span is not None:
             span.set_attribute("result_count", len(results))
 
+        observe_retrieval_latency(
+            cache_hit=False, duration_seconds=time.perf_counter() - started
+        )
         logger.info(f"retrieved {len(results)} results")
         return results, {"cache_hit": False}
 
