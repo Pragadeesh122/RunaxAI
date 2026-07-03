@@ -134,13 +134,16 @@ def _answer_question(url: str, title: str, question: str, markdown: str) -> dict
 
 async def _crawl(url: str, question: str | None = None) -> dict[str, Any]:
     try:
-        from crawl4ai import AsyncWebCrawler
+        from crawl4ai import AsyncWebCrawler, BrowserConfig
     except ImportError as e:
         raise RuntimeError(
             "Crawl4AI is not installed. Run `uv sync` and `uv run crawl4ai-setup` first."
         ) from e
 
-    async with AsyncWebCrawler() as crawler:
+    # --disable-dev-shm-usage: k8s pods get a 64MB /dev/shm by default;
+    # Chromium crashes on heavy pages unless it falls back to /tmp.
+    browser_config = BrowserConfig(extra_args=["--disable-dev-shm-usage"])
+    async with AsyncWebCrawler(config=browser_config) as crawler:
         result = await crawler.arun(url=url)
 
     success = getattr(result, "success", True)

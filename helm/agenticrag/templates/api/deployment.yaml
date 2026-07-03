@@ -106,8 +106,17 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            # Writable home for tool scratch space on the read-only root FS:
+            # crawl4ai insists on ~/.crawl4ai (one code path bypasses its own
+            # env override via expanduser), and Chromium probes ~/.cache and
+            # ~/.config. The image's home only carries shell skeleton files,
+            # so masking it with an emptyDir loses nothing.
+            - name: home
+              mountPath: /home/appuser
       volumes:
         - name: tmp
+          emptyDir: {}
+        - name: home
           emptyDir: {}
       {{- with .Values.api.nodeSelector }}
       nodeSelector:
