@@ -3,6 +3,7 @@ import os
 import logging
 import asyncio
 import base64
+import tempfile
 from datetime import datetime
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
 from clients import llm_client
@@ -11,7 +12,14 @@ from llm.response_utils import extract_first_text
 
 logger = logging.getLogger("browser-agent")
 
-SCREENSHOTS_DIR = "browser_screenshots"
+# Screenshots are transient inputs for the vision fallback, not artifacts.
+# They must live under tempdir: the prod containers run with a read-only
+# root filesystem where only /tmp is writable, so a repo-relative path
+# (the old "browser_screenshots") fails with EROFS.
+SCREENSHOTS_DIR = os.getenv(
+    "BROWSER_SCREENSHOTS_DIR",
+    os.path.join(tempfile.gettempdir(), "browser_screenshots"),
+)
 ACTION_TIMEOUT = 5000  # 5s per action — fail fast, don't hang
 MAX_ACTIONS = 15  # safety limit to prevent infinite loops
 DEFAULT_HEADLESS = os.getenv("PLAYWRIGHT_HEADLESS", "true").lower() != "false"
@@ -176,7 +184,13 @@ async def _run_browser_task(url: str, goal: str) -> str:
         browser = await p.chromium.launch(
             headless=DEFAULT_HEADLESS,
             ignore_default_args=["--enable-automation"],
-            args=["--disable-blink-features=AutomationControlled"],
+            # --disable-dev-shm-usage: k8s pods get a 64MB /dev/shm by
+            # default; Chromium crashes on heavy pages unless it falls back
+            # to /tmp for shared memory.
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-dev-shm-usage",
+            ],
         )
         context = await browser.new_context(
             viewport={"width": 1280, "height": 800},
