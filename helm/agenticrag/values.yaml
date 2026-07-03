@@ -253,6 +253,7 @@ secrets:
   xaiApiKey: ""
   openrouterApiKey: ""
   braveApiKey: ""
+  tavilyApiKey: ""
   authGoogleId: ""
   authGoogleSecret: ""
   authGithubId: ""
