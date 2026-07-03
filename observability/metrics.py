@@ -141,6 +141,18 @@ TOOL_BUDGET_EXHAUSTED_TOTAL = Counter(
     ["chat_type", "budget"],
 )
 
+WORKER_TASKS_TOTAL = Counter(
+    "agenticrag_worker_tasks_total",
+    "ARQ background task executions by outcome.",
+    ["task_name", "status"],
+)
+WORKER_TASK_DURATION_SECONDS = Histogram(
+    "agenticrag_worker_task_duration_seconds",
+    "ARQ background task duration in seconds.",
+    ["task_name", "status"],
+    buckets=(0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600),
+)
+
 
 def _field(obj: Any, key: str, default=None):
     if isinstance(obj, dict):
@@ -366,3 +378,11 @@ def observe_tool_budget_exhausted(*, chat_type: str, budget: str) -> None:
         chat_type=chat_type or "unknown",
         budget=budget or "unknown",
     ).inc()
+
+
+def observe_worker_task(*, task_name: str, status: str, duration_seconds: float) -> None:
+    WORKER_TASKS_TOTAL.labels(task_name=task_name, status=status).inc()
+    if duration_seconds >= 0:
+        WORKER_TASK_DURATION_SECONDS.labels(
+            task_name=task_name, status=status
+        ).observe(duration_seconds)

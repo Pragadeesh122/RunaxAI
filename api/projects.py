@@ -19,6 +19,7 @@ from pipeline.retriever import retrieve
 from pipeline.storage import put_object_stream
 from api.project_chat import project_chat_stream
 from api.session import session_owned_by_user
+from observability.propagation import inject_trace_context
 from tasks.document_tasks import process_document_task
 
 from agents.registry import AGENTS
@@ -171,6 +172,7 @@ async def _enqueue_ingestion(
     filename: str,
     background_tasks: BackgroundTasks,
 ) -> None:
+    trace_ctx = inject_trace_context()
     if document_ingest_mode == "background":
         background_tasks.add_task(
             process_document_task,
@@ -179,6 +181,7 @@ async def _enqueue_ingestion(
             project_id,
             document_id,
             filename,
+            _trace=trace_ctx,
         )
     else:
         arq_pool = await get_arq_pool()
@@ -188,6 +191,7 @@ async def _enqueue_ingestion(
             project_id,
             document_id,
             filename,
+            _trace=trace_ctx,
         )
 
 

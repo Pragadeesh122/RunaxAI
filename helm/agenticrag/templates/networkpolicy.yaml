@@ -47,7 +47,14 @@ spec:
   policyTypes:
     - Ingress
     - Egress
-  ingress: [] # No inbound traffic
+  ingress:
+    - from: # Prometheus scrapes worker task metrics
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: prometheus
+      ports:
+        - port: 9100
+          protocol: TCP
   egress:
     - {} # Worker needs outbound to DB, Redis, MinIO, Pinecone, LLM APIs
 ---

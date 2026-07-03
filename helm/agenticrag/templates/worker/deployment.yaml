@@ -37,6 +37,9 @@ spec:
             - -m
             - arq
             - worker.WorkerSettings
+          ports:
+            - name: metrics
+              containerPort: 9100
           envFrom:
             - configMapRef:
                 name: {{ include "agenticrag.configMapName" . }}

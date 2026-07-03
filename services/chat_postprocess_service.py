@@ -6,6 +6,8 @@ from typing import Optional
 from arq import create_pool
 from arq.connections import RedisSettings
 
+from observability.propagation import inject_trace_context
+
 logger = logging.getLogger("services.chat_postprocess")
 
 redis_host = os.getenv("REDIS_HOST", "localhost")
@@ -57,7 +59,11 @@ async def _enqueue_memory_persistence(
 ) -> None:
     pool = await create_pool(RedisSettings(host=redis_host, port=redis_port))
     await pool.enqueue_job(
-        "persist_memories_task", user_id, messages, session_id
+        "persist_memories_task",
+        user_id,
+        messages,
+        session_id,
+        _trace=inject_trace_context(),
     )
 
 
@@ -67,7 +73,10 @@ async def _enqueue_memory_summary_refresh(
 ) -> None:
     pool = await create_pool(RedisSettings(host=redis_host, port=redis_port))
     await pool.enqueue_job(
-        "refresh_rolling_summary_task", messages, session_id
+        "refresh_rolling_summary_task",
+        messages,
+        session_id,
+        _trace=inject_trace_context(),
     )
 
 
