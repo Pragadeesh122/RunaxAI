@@ -14,10 +14,15 @@ def _env_bool(name: str, default: str = "false") -> bool:
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
-def setup_tracing(app) -> None:
+def setup_tracing(app=None, *, service_name: str | None = None) -> None:
     """Wire TracerProvider, OTLP exporter, and auto-instrumentors.
 
     Idempotent. Gated behind ``OTEL_ENABLED`` env var (default ``false``).
+
+    ``app`` is optional so non-FastAPI processes (the ARQ worker) can share
+    the same setup — FastAPI instrumentation is skipped when app is None.
+    ``service_name`` overrides OTEL_SERVICE_NAME so each process reports as
+    its own service in Tempo (api = "agenticrag", worker = "agenticrag-worker").
     """
     global _INITIALIZED
     if _INITIALIZED:
@@ -40,7 +45,8 @@ def setup_tracing(app) -> None:
         )
 
         resource = Resource.create({
-            "service.name": os.getenv("OTEL_SERVICE_NAME", "agenticrag"),
+            "service.name": service_name
+            or os.getenv("OTEL_SERVICE_NAME", "agenticrag"),
             "service.version": "0.1.0",
         })
 
@@ -50,10 +56,12 @@ def setup_tracing(app) -> None:
         trace.set_tracer_provider(provider)
 
         # Auto-instrumentors — each is optional so a missing package won't block startup.
-        _instrument_fastapi(app)
+        if app is not None:
+            _instrument_fastapi(app)
         _instrument_redis()
         _instrument_sqlalchemy()
         _instrument_httpx()
+        _instrument_logging()
 
         logger.info("OpenTelemetry tracing enabled (endpoint=%s)", endpoint)
     except Exception:
@@ -81,8 +89,12 @@ def _instrument_redis() -> None:
 def _instrument_sqlalchemy() -> None:
     try:
         from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-        from database.core import sync_engine
+        from database.core import engine, sync_engine
+        # Both engines: sync_engine serves memory/semantic sync sessions; the
+        # async engine (via its underlying sync core) serves everything else.
+        # Instrumenting only sync_engine left every async query without spans.
         SQLAlchemyInstrumentor().instrument(engine=sync_engine)
+        SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
     except Exception:
         logger.debug("SQLAlchemy auto-instrumentation skipped", exc_info=True)
 
@@ -93,6 +105,21 @@ def _instrument_httpx() -> None:
         HTTPXClientInstrumentor().instrument()
     except Exception:
         logger.debug("HTTPX auto-instrumentation skipped", exc_info=True)
+
+
+def _instrument_logging() -> None:
+    """Stamp otelTraceID/otelSpanID onto every LogRecord.
+
+    JSONFormatter (observability/logging_config.py) already reads these
+    attributes to emit trace_id/span_id — without this instrumentor nothing
+    sets them, so Loki logs could never be joined to Tempo traces.
+    set_logging_format=False: we keep our own formatter.
+    """
+    try:
+        from opentelemetry.instrumentation.logging import LoggingInstrumentor
+        LoggingInstrumentor().instrument(set_logging_format=False)
+    except Exception:
+        logger.debug("logging auto-instrumentation skipped", exc_info=True)
 
 
 def get_tracer(name: str = "agenticrag"):

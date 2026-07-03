@@ -1,0 +1,359 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Total tool invocations in the selected range.",
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agenticrag_tool_calls_total[$__range]))",
+          "instant": true,
+          "legendFormat": "tool calls",
+          "refId": "A"
+        }
+      ],
+      "title": "Tool Calls",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Total turns that hit the max-tool-call safeguard.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 5}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agenticrag_max_tool_calls_reached_total[$__range]))",
+          "instant": true,
+          "legendFormat": "max tool call trips",
+          "refId": "A"
+        }
+      ],
+      "title": "Max Tool Call Trips",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Total orchestration budget exhaustions (turn ended because a planning budget was hit).",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 5}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agenticrag_tool_budget_exhausted_total[$__range]))",
+          "instant": true,
+          "legendFormat": "budget exhausted",
+          "refId": "A"
+        }
+      ],
+      "title": "Tool Budget Exhausted",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Cache hit ratio across all cacheable tools (hit / (hit + miss)).",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.3},
+              {"color": "green", "value": 0.6}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agenticrag_tool_cache_total{cache_status=\"hit\"}[$__range])) / clamp_min(sum(increase(agenticrag_tool_cache_total{cache_status=~\"hit|miss\"}[$__range])), 1)",
+          "instant": true,
+          "legendFormat": "hit ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "Tool Cache Hit Ratio",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Tool invocation rate by tool name (calls per second).",
+      "fieldConfig": {"defaults": {"unit": "ops", "decimals": 2}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 5,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"]}},
+      "targets": [
+        {
+          "expr": "sum by (tool_name) (rate(agenticrag_tool_calls_total[5m]))",
+          "legendFormat": "{{tool_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Tool Call Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Failure rate per tool (errors / total).",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.1},
+              {"color": "red", "value": 0.25}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 6,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}},
+      "targets": [
+        {
+          "expr": "sum by (tool_name) (rate(agenticrag_tool_calls_total{status=\"error\"}[5m])) / clamp_min(sum by (tool_name) (rate(agenticrag_tool_calls_total[5m])), 0.0001)",
+          "legendFormat": "{{tool_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Tool Failure Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "p95 tool execution latency by tool.",
+      "fieldConfig": {"defaults": {"unit": "s", "decimals": 3}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13},
+      "id": 7,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, tool_name) (rate(agenticrag_tool_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{tool_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Tool Duration p95 by Tool",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Share of conversations routed to each specialized agent over the selected range.",
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
+      "id": 8,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+        "pieType": "donut",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "expr": "sum by (selected_agent) (increase(agenticrag_agent_routes_total[$__range]))",
+          "instant": true,
+          "legendFormat": "{{selected_agent}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Agent Route Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "p95 agent router latency by route mode (auto vs explicit).",
+      "fieldConfig": {"defaults": {"unit": "s", "decimals": 3}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
+      "id": 9,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, route_mode) (rate(agenticrag_agent_route_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{route_mode}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Agent Router Duration p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Retrieved document chunk counts per project-chat query (p50/p95).",
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
+      "id": 10,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, agent_name) (rate(agenticrag_retrieval_results_count_bucket[5m])))",
+          "legendFormat": "p50 | {{agent_name}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, agent_name) (rate(agenticrag_retrieval_results_count_bucket[5m])))",
+          "legendFormat": "p95 | {{agent_name}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Retrieval Results per Query",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Orchestration tool-selection behavior: requested vs actually executed vs suppressed (e.g. duplicates).",
+      "fieldConfig": {"defaults": {"unit": "ops", "decimals": 2}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 29},
+      "id": 11,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"]}},
+      "targets": [
+        {
+          "expr": "sum by (selection) (rate(agenticrag_orchestration_tool_selection_total[5m]))",
+          "legendFormat": "{{selection}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Orchestration Tool Selection Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Most-suppressed tools by the orchestration dedup layer.",
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 29},
+      "id": 12,
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (tool_name) (increase(agenticrag_orchestration_duplicate_suppressions_total[$__range])))",
+          "instant": true,
+          "legendFormat": "{{tool_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Duplicate Tool Suppressions",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Orchestration planner decisions per minute, broken down by planning mode + reason.",
+      "fieldConfig": {"defaults": {"unit": "ops", "decimals": 2}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 37},
+      "id": 13,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"]}},
+      "targets": [
+        {
+          "expr": "sum by (mode, reason) (rate(agenticrag_orchestration_steps_total[5m]))",
+          "legendFormat": "{{mode}} | {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Orchestration Planner Decisions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Conversation summarization events by trigger reason.",
+      "fieldConfig": {"defaults": {"unit": "ops", "decimals": 2}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 37},
+      "id": 14,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"]}},
+      "targets": [
+        {
+          "expr": "sum by (reason, chat_type) (rate(agenticrag_summarization_events_total[5m]))",
+          "legendFormat": "{{chat_type}} | {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Summarization Events",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["agenticrag", "operations"],
+  "templating": {"list": []},
+  "time": {"from": "now-24h", "to": "now"},
+  "timezone": "browser",
+  "title": "RunaxAI - Operations",
+  "uid": "agenticrag-ops-v1",
+  "version": 2
+}

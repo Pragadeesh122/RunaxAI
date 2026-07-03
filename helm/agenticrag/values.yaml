@@ -356,3 +356,5 @@ monitoring:
   tempo:
     enabled: true
     image: "grafana/tempo:2.6.1"
+    storage:
+      size: 2Gi

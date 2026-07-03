@@ -32,6 +32,7 @@ from memory.semantic import (
     extract_and_persist_memories,
     refresh_rolling_summary,
 )
+from observability.task_instrumentation import instrumented_task
 
 logger = logging.getLogger("worker.memory")
 
@@ -83,6 +84,7 @@ def _count_user_turns(messages: list[dict]) -> int:
     return sum(1 for m in messages if isinstance(m, dict) and m.get("role") == "user")
 
 
+@instrumented_task
 async def persist_memories_task(
     ctx,
     user_id: str,
@@ -141,6 +143,7 @@ async def persist_memories_task(
         redis_client.delete(_lock_key(sid))
 
 
+@instrumented_task
 async def refresh_rolling_summary_task(
     ctx,
     messages: list[dict],

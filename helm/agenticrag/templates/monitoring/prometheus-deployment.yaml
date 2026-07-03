@@ -1,4 +1,58 @@
 {{- if .Values.monitoring.enabled }}
+{{/*
+ServiceAccount + namespace-scoped RBAC so Prometheus can discover API/worker
+pods via kubernetes_sd_configs (role: pod, own namespace only).
+*/}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "agenticrag.fullname" . }}-prometheus
+  labels:
+    {{- include "agenticrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "agenticrag.fullname" . }}-prometheus
+  labels:
+    {{- include "agenticrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "agenticrag.fullname" . }}-prometheus
+  labels:
+    {{- include "agenticrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "agenticrag.fullname" . }}-prometheus
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "agenticrag.fullname" . }}-prometheus
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "agenticrag.fullname" . }}-prometheus-data
+  labels:
+    {{- include "agenticrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.prometheus.storage.size }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,6 +62,8 @@ metadata:
     app.kubernetes.io/component: prometheus
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "agenticrag.selectorLabels" . | nindent 6 }}
@@ -18,6 +74,7 @@ spec:
         {{- include "agenticrag.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: prometheus
     spec:
+      serviceAccountName: {{ include "agenticrag.fullname" . }}-prometheus
       containers:
         - name: prometheus
           image: {{ .Values.monitoring.prometheus.image }}
@@ -45,7 +102,8 @@ spec:
           configMap:
             name: {{ include "agenticrag.fullname" . }}-prometheus-config
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: {{ include "agenticrag.fullname" . }}-prometheus-data
 ---
 apiVersion: v1
 kind: Service

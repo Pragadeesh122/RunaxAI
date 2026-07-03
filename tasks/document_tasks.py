@@ -3,10 +3,12 @@ import logging
 from pipeline.ingestion import ingest_document
 from pipeline.retrieval_cache import invalidate_project_cache
 from database.core import async_session_maker
+from observability.task_instrumentation import instrumented_task
 from services.document_service import DocumentService
 
 logger = logging.getLogger("worker.tasks")
 
+@instrumented_task
 async def process_document_task(ctx, object_key: str, project_id: str, document_id: str, filename: str):
     """
     ARQ task to parse, chunk, embed, and upload documents to Vector DB.

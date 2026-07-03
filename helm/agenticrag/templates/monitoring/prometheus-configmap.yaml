@@ -2,6 +2,12 @@
 Prometheus scrape config for RunaxAI.
 When monitoring.enabled=true, this is mounted by the Prometheus deployment.
 When using external kube-prometheus-stack, use this as additionalScrapeConfigs.
+
+API pods are discovered individually (kubernetes_sd role: pod) instead of
+scraping through the Service: with replicaCount > 1 a static Service target
+round-robins between pods, interleaving two independent counter series under
+one target identity — rate() sees phantom resets and every counter/histogram
+is corrupted. Pod discovery gives each replica its own target + pod label.
 */}}
 apiVersion: v1
 kind: ConfigMap
@@ -18,5 +24,40 @@ data:
     scrape_configs:
       - job_name: agenticrag-api
         metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              own_namespace: true
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_name
+              - __meta_kubernetes_pod_label_app_kubernetes_io_instance
+              - __meta_kubernetes_pod_label_app_kubernetes_io_component
+            action: keep
+            regex: {{ include "agenticrag.name" . }};{{ .Release.Name }};api
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "8000"
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+      - job_name: agenticrag-worker
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              own_namespace: true
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_name
+              - __meta_kubernetes_pod_label_app_kubernetes_io_instance
+              - __meta_kubernetes_pod_label_app_kubernetes_io_component
+            action: keep
+            regex: {{ include "agenticrag.name" . }};{{ .Release.Name }};worker
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "9100"
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+      - job_name: prometheus
         static_configs:
-          - targets: ["{{ include "agenticrag.fullname" . }}-api:8000"]
+          - targets: ["localhost:9090"]
