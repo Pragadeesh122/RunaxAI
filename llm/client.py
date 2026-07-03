@@ -24,7 +24,12 @@ try:
 except Exception:  # pragma: no cover - import failure path
     token_counter = None
 
-_STREAM_USAGE_PROVIDERS = {"openai", "grok"}
+# Single source of truth for which providers get stream_options: the provider
+# layer strips the param for anything outside this set, so a second list here
+# would silently drift (request usage -> provider strips it -> estimation).
+from llm.providers.litellm_provider import (
+    STREAM_OPTIONS_ALLOWED_PROVIDERS as _STREAM_USAGE_PROVIDERS,
+)
 logger = logging.getLogger(__name__)
 
 

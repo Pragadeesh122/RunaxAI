@@ -28,7 +28,12 @@ OPENAI_CHAT_MODEL_ALIASES = {
     "gpt-4o",
     "gpt-4o-mini",
 }
-STREAM_OPTIONS_ALLOWED_PROVIDERS = {"openai", "grok"}
+# Providers whose streams honor stream_options={"include_usage": True} so the
+# final chunk carries exact provider-billed token counts. litellm.drop_params
+# is True above, so an unsupported provider would silently drop the param and
+# fall back to tokenizer estimation — never error. Ollama stays out: it
+# reports usage in its final chunk without the flag.
+STREAM_OPTIONS_ALLOWED_PROVIDERS = {"openai", "grok", "openrouter", "anthropic", "gemini"}
 
 class LiteLLMProvider(BaseLLMProvider):
     """Provider wrapper that normalizes model names + kwargs for LiteLLM."""
