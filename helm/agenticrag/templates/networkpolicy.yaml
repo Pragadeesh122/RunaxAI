@@ -19,6 +19,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/component: frontend
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: prometheus
         - namespaceSelector: {}
           podSelector:
             matchLabels:

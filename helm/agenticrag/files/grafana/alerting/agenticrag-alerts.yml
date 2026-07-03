@@ -1,0 +1,257 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: agenticrag-observability
+    folder: RunaxAI Alerts
+    interval: 5m
+    rules:
+      - uid: ag_max_tool_calls_loop
+        title: Max Tool Calls Loop Detected
+        condition: B
+        data:
+          - refId: A
+            queryType: range
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: rate({job="docker",service="api"} |= "max tool calls reached"[5m])
+              queryType: range
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: B
+              type: threshold
+              conditions:
+                - type: query
+                  query:
+                    params: ["B"]
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params: [0.5]
+                  operator:
+                    type: and
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Frequent max-tool-call events indicate a reasoning loop."
+        labels:
+          severity: warning
+
+      - uid: ag_llm_failure_spike
+        title: LLM Failure Spike
+        condition: B
+        data:
+          - refId: A
+            queryType: range
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: rate({job="docker",service="api"} |~ "(?i)LLM call failed|litellm\\..*Error|litellm\\.exceptions"[5m])
+              queryType: range
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: B
+              type: threshold
+              conditions:
+                - type: query
+                  query:
+                    params: ["B"]
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params: [1]
+                  operator:
+                    type: and
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "LLM/provider failures are spiking in API logs."
+        labels:
+          severity: critical
+
+      - uid: ag_tool_failure_rate_high
+        title: Tool Failure Rate High
+        condition: B
+        data:
+          - refId: A
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: sum(rate(agenticrag_tool_calls_total{status="error"}[5m])) / clamp_min(sum(rate(agenticrag_tool_calls_total[5m])), 0.0001)
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: B
+              type: threshold
+              conditions:
+                - type: query
+                  query:
+                    params: ["B"]
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params: [0.2]
+                  operator:
+                    type: and
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Overall tool failure rate exceeded 20%."
+        labels:
+          severity: warning
+
+      - uid: ag_ttft_p95_slow
+        title: TTFT p95 Degraded
+        condition: B
+        data:
+          - refId: A
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: histogram_quantile(0.95, sum by (le) (rate(agenticrag_llm_ttft_seconds_bucket[5m])))
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: B
+              type: threshold
+              conditions:
+                - type: query
+                  query:
+                    params: ["B"]
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params: [3]
+                  operator:
+                    type: and
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "p95 TTFT is above 3 seconds."
+        labels:
+          severity: warning
+
+      - uid: ag_api_p95_latency_high
+        title: API p95 Latency Degraded
+        condition: B
+        data:
+          - refId: A
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: B
+              type: threshold
+              conditions:
+                - type: query
+                  query:
+                    params: ["B"]
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params: [2]
+                  operator:
+                    type: and
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "API p95 latency is above 2 seconds."
+        labels:
+          severity: warning

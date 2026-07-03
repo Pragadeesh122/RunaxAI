@@ -45,6 +45,36 @@ data:
         options:
           path: /etc/grafana/dashboards
 ---
+{{/*
+Alert rules are packaged from helm/agenticrag/files/grafana/alerting/ (kept in
+sync with monitoring/grafana/provisioning/alerting/ — enforced by
+tests/test_helm_grafana_sync.py). Datasource UIDs (prometheus/loki) match the
+provisioned datasources above.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "agenticrag.fullname" . }}-grafana-alerting
+  labels:
+    {{- include "agenticrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+{{ (.Files.Glob "files/grafana/alerting/*.yml").AsConfig | indent 2 }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "agenticrag.fullname" . }}-grafana-data
+  labels:
+    {{- include "agenticrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.grafana.storage.size }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -89,6 +119,8 @@ spec:
             - name: provisioning
               mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
               subPath: dashboards.yaml
+            - name: alerting
+              mountPath: /etc/grafana/provisioning/alerting
             - name: dashboards
               mountPath: /etc/grafana/dashboards
             - name: data
@@ -104,11 +136,15 @@ spec:
         - name: provisioning
           configMap:
             name: {{ include "agenticrag.fullname" . }}-grafana-provisioning
+        - name: alerting
+          configMap:
+            name: {{ include "agenticrag.fullname" . }}-grafana-alerting
         - name: dashboards
           configMap:
             name: {{ include "agenticrag.fullname" . }}-grafana-dashboards
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: {{ include "agenticrag.fullname" . }}-grafana-data
 ---
 apiVersion: v1
 kind: Service

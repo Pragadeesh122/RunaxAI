@@ -1,7 +1,10 @@
 {{/*
 Grafana dashboard ConfigMaps.
-The grafana_dashboard label lets the Grafana sidecar in kube-prometheus-stack
-auto-discover and load these dashboards — even when monitoring.enabled=false.
+Dashboard JSONs are packaged from helm/agenticrag/files/grafana/dashboards/
+(kept in sync with monitoring/grafana/provisioning/dashboards/ — enforced by
+tests/test_helm_grafana_sync.py). The grafana_dashboard label lets the Grafana
+sidecar in kube-prometheus-stack auto-discover these dashboards too — even
+when monitoring.enabled=false.
 */}}
 apiVersion: v1
 kind: ConfigMap
@@ -14,13 +17,4 @@ metadata:
   annotations:
     grafana_folder: "RunaxAI"
 data:
-  # Dashboard JSON files are large. In practice, package them with:
-  #   helm create ... && cp monitoring/grafana/provisioning/dashboards/*.json templates/monitoring/
-  # For now, a placeholder noting the dashboard names:
-  _readme: |
-    Dashboard JSON files to include:
-    - agenticrag-ux-latency.json
-    - agenticrag-agentic-ops.json
-    - agenticrag-economics.json
-    Copy the JSON content from monitoring/grafana/provisioning/dashboards/
-    into this ConfigMap's data section, or use a Helm post-renderer.
+{{ (.Files.Glob "files/grafana/dashboards/*.json").AsConfig | indent 2 }}

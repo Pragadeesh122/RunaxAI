@@ -29,6 +29,20 @@ data:
         wal:
           path: /var/tempo/wal
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "agenticrag.fullname" . }}-tempo-data
+  labels:
+    {{- include "agenticrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tempo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.tempo.storage.size }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -38,6 +52,8 @@ metadata:
     app.kubernetes.io/component: tempo
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "agenticrag.selectorLabels" . | nindent 6 }}
@@ -75,7 +91,8 @@ spec:
           configMap:
             name: {{ include "agenticrag.fullname" . }}-tempo-config
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: {{ include "agenticrag.fullname" . }}-tempo-data
 ---
 apiVersion: v1
 kind: Service
