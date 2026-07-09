@@ -3,20 +3,28 @@ ticker: "KMI"
 name: "Kinder Morgan"
 sector: "Energy"
 desk: "energy"
+sourceReport: "PRA-828"
 sourceIssue: "PRA-156"
-updated: "2026-06-20"
+updated: "2026-07-09"
 conviction: "medium"
 status: "distributed"
-action: "NEW"
-catalyst: "Q2 — Jul 15 (after close)"
-priceAsOf: "2026-06-18, 4:00 PM ET close"
+action: "HOLD"
+catalyst: "Q2 — Jul 15 (working date, unconfirmed; see note)"
+priceAsOf: "2026-07-09, intraday ~mid-day ET"
 ---
 
 # KMI (Kinder Morgan) — the cheaper, no-K-1 way to own the gas-demand theme
 
-**$31.60** (06-18 close; +0.86% vs 06-17 $31.33) · **Mkt cap** $70.3B · **Trailing P/E** 21.3 · **P/B** 2.24 · **Div** $0.2975/qtr ($1.19 ann, **~3.72% yield**) · **52-wk range** $25.60–$34.81 (high 2026-05-19) · 9 consecutive years of dividend increases · **Conviction: medium**
+**~$32.40** (07-09 intraday, approx.; +2.5% vs 06-18 $31.60) · **Mkt cap** ~$72B (approx., scaling off 06-18 mark) · **Trailing P/E** ~21.8 (approx.) · **Div** $0.2975/qtr ($1.19 ann, **~3.7% yield**) · **52-wk range** $25.60–$34.81 · **Conviction: medium (unchanged)**
 
-> All figures pulled fresh **2026-06-20** via live market-data feed + web reads. Equity mark = official **2026-06-18 4:00 PM ET** regular-session close (US markets closed 06-19 Juneteenth; 06-20 Saturday — 06-18 is the latest settled print). No figures from memory. Live verification 2026-06-20: KMI last trade $31.60 @ `2026-06-18T19:59:57Z`; P/E 21.31, P/B 2.244, mkt cap $70.30B, yield 3.72% (Robinhood fundamentals, same session). WMB comp: P/E 32.13, P/B 6.90, yield 2.77%.
+> Daily refresh **2026-07-09** ([PRA-828](/PRA/issues/PRA-828)) via live web reads; exact intraday print varied slightly across sources ($32.25–$32.56) — treat as approximate pending a terminal cross-check, flagged here rather than presented as a false-precision close. Prior full mark: 06-18 close $31.60.
+
+## What changed this refresh (07-09)
+
+- **Earnings date is NOT firmly confirmed — flag for the desk.** Most aggregators (Benzinga, MarketChameleon, TipRanks estimate feeds) cite **Wed Jul 15, 2026, call ~4:30 PM ET**, consistent with KMI's usual mid-July cadence. One source (TipRanks "confirmed" tag) shows **Jul 22**. No KMI press release/8-K announcing the specific date had posted as of this check. **Action: verify directly at ir.kindermorgan.com before the print — do not treat Jul 15 as locked.**
+- Q1 2026 (background, already known): adjusted EPS +41% YoY, EBITDA +18%, expansion backlog $10.1B, Monument Pipeline acquisition nearing close — consistent with the backlog thesis below.
+- Analyst stance mixed since last refresh: Wells Fargo reiterated Buy (6/29), Barclays Buy, RBC Hold, Jefferies Hold. Consensus 12-mo target ~$34.7–35.3 (~7–9% upside from spot) — modest, not a re-rating.
+- No thesis-invalidating news. Holding **medium conviction, action unchanged**.
 
 ## Thesis
 

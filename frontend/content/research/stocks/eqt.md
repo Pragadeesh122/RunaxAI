@@ -3,20 +3,32 @@ ticker: "EQT"
 name: "EQT Corp"
 sector: "Energy"
 desk: "energy"
+sourceReport: "PRA-828"
 sourceIssue: "PRA-375"
-updated: "2026-06-24"
+updated: "2026-07-09"
 conviction: "medium"
 status: "distributed"
-action: "NEW"
-catalyst: "Q2 — ~late Jul 2026"
-priceAsOf: "2026-06-24, 4:00 PM ET close"
+action: "RE-EVALUATE"
+catalyst: "Q2 — Jul 21, 2026 (after close, confirmed)"
+priceAsOf: "2026-07-08, ~$51.11 last trade"
 ---
 
 # EQT (EQT Corp) — the washed-out, low-cost gas pure-play levered to firming Henry Hub
 
-**$51.48** (06-24 official 4:00 PM ET close; intraday last $51.51; session range $50.81–$52.17) · **Mkt cap** $32.2B · **Trailing P/E** 9.79 · **P/B** 1.29 · shares ~625.5M · net debt ~$5.7B → **EV ~$37.9B** · **52-wk range $48.47 (9/16/25) – $68.24 (3/27/26)** — trading ~6% off the 52-wk LOW, ~25% below the March high · Base div $0.165/qtr ($0.66/yr, ~1.26% yield) · **Conviction: medium**
+**~$51.11** (07-08 last trade; roughly flat vs 06-24's $51.48) · **Mkt cap** ~$32B · **Trailing P/E** ~9.7 · **52-wk range $48.47 – $68.24** · Base div $0.165/qtr (~1.26% yield) · **Conviction: medium — WATCH, thesis under pressure (was medium/constructive)**
 
-> All figures pulled fresh **2026-06-24** via live market-data feed (Robinhood) + web reads. Equity mark = official **2026-06-24 4:00 PM ET** regular-session close (`sip-list-exchange-close`). No figures from memory. Commodity/operational reads (Henry Hub ~$3.25, 2-week high; US LNG capacity ~17 Bcf/d; Cheniere CC Stage 3 Trains 5–6) = TradingEconomics/EIA, same session.
+> Daily refresh **2026-07-09** ([PRA-828](/PRA/issues/PRA-828)). Prior full mark: 06-24 official close $51.48. Henry Hub spot ~$3.22/MMBtu as of 07-07 (EIA/TradingEconomics), down modestly from the ~$3.25 2-week-high cited at initiation.
+
+## What changed this refresh (07-09) — flag for re-evaluation
+
+**A wave of sell-side price-target cuts hit this name in the days before this refresh, all citing a weaker Henry Hub forward outlook, not company execution:**
+- UBS $74 → $73 (Buy maintained)
+- Jefferies $77 → $75 (Buy maintained)
+- Morgan Stanley $74 → **$68** (Overweight maintained) — explicitly tied to the broader energy-price reset after the June 14 US-Iran MOU pushed the whole complex (oil and, by read-through, gas sentiment) lower
+- Truist $74 → **$65** (Buy maintained)
+- (Offsetting: Freedom Broker initiated Buy, $79 PT)
+
+Four firms cutting targets in quick succession — while all keep Buy/Overweight ratings and consensus stays ~$68.88 avg (~36% upside from spot) — is a real signal that the sell-side's near-term gas-price assumptions have come down since this name was initiated on a "firming Henry Hub" call. The spot price itself (~$3.22) has only drifted modestly, so this reads as **forward-curve/estimate risk, not a confirmed break in the thesis** — but it's the reason conviction moves from a clean "medium, constructive" to **medium, re-evaluate ahead of the Jul 21 print**. The FCF/balance-sheet argument (sub-1.0x leverage, BBB, ~$3.5B 2026 FCF guide) is unchanged and provides a floor; watch the Jul 21 print for a FY FCF guide reaffirm/cut, which will resolve this one way or the other. Read-through risk: same forward-gas-price pressure shows up in sell-side commentary on EOG and DTM this cycle.
 
 ## Thesis
 
