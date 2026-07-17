@@ -48,13 +48,13 @@ jobs:
               - 'pyproject.toml'
               - 'uv.lock'
               - 'Dockerfile'
-              - '.github/workflows/pr.yml'
+              - '.github/workflows/**'
             frontend:
               - 'frontend/**'
-              - '.github/workflows/pr.yml'
+              - '.github/workflows/**'
             helm:
               - 'helm/agenticrag/**'
-              - '.github/workflows/pr.yml'
+              - '.github/workflows/**'
 
   # ---------------------------------------------------------------------------
   # API tests — sqlite in-memory fixtures, no external deps required.
