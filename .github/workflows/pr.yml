@@ -44,6 +44,8 @@ jobs:
               - 'tasks/**'
               - 'observability/**'
               - 'alembic/**'
+              - 'evals/**'
+              - 'tests/**'
               - 'pyproject.toml'
               - 'uv.lock'
               - 'Dockerfile'
@@ -61,7 +63,6 @@ jobs:
   test-api:
     name: API tests
     needs: changes
-    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
@@ -131,7 +132,6 @@ jobs:
   helm-lint:
     name: Helm chart lint
     needs: changes
-    if: needs.changes.outputs.helm == 'true'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 5
     steps:
