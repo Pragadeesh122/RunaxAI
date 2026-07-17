@@ -100,7 +100,7 @@ jobs:
           category: trivy-api
 
       - name: Attest build provenance (API)
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-name: ${{ env.API_IMAGE }}
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -179,7 +179,7 @@ jobs:
           category: trivy-frontend
 
       - name: Attest build provenance (frontend)
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-name: ${{ env.FRONTEND_IMAGE }}
           subject-digest: ${{ steps.build.outputs.digest }}
