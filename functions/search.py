@@ -4,6 +4,7 @@ import logging
 from clients import llm_client
 from prompts.search_summarizer import SEARCH_SUMMARIZER
 from llm.response_utils import extract_first_text, usage_tokens
+from functions._parallel_search import parallel_search
 
 logger = logging.getLogger("search-agent")
 
@@ -90,6 +91,11 @@ _PROVIDERS = (
 
 
 def _run_search(query: str) -> tuple[str, list[dict]]:
+    # Parallel is an explicit alternative, never an implicit fallback that could
+    # send queries to a provider the operator did not select.
+    if os.getenv("SEARCH_PROVIDER", "").strip().lower() == "parallel":
+        return "parallel", parallel_search(query)
+
     configured = [
         (name, os.getenv(key_env), fn)
         for name, key_env, fn in _PROVIDERS

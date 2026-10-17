@@ -31,12 +31,36 @@ No manual registration — add a module with `SCHEMA` and a matching function.
 
 | Tool | Description | Cacheable | Execution mode |
 |------|-------------|-----------|---------------|
-| `search` | Web search via Brave Search API + LLM summarization | Yes | parallel_safe |
+| `search` | Web search via Tavily/Brave or opt-in Parallel Search MCP + LLM summarization | Yes | parallel_safe |
 | `query_db` | Natural language → SQL → PostgreSQL (read-only user) | Yes | sequential_first |
 | `browser_task` | Headless browser for interactive web pages | No | sequential_first |
 | `crawl_website` | Extract and read web page content via Crawl4AI | No | sequential_first |
 | `query_local_kb` | Search local FAISS knowledge base | Yes | sequential_first |
 | `portfolio` | Portfolio-specific queries | Yes | sequential_first |
+
+### Keyless web search with Parallel
+
+To use [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+for general chat's existing `search` tool, set this in the root `.env` file:
+
+```dotenv
+SEARCH_PROVIDER=parallel
+```
+
+Install the updated dependencies with `uv sync` and restart the API. With Docker
+Compose, rebuild and recreate the API with `docker compose up -d --build api`.
+Ask a current-information question in general chat, such as "What changed in the
+latest Python release?", to let the orchestrator choose the search tool.
+
+Parallel uses Streamable HTTP at `https://search.parallel.ai/mcp`. Anonymous
+search is free, uses Fast mode, and requires no Parallel account or API key.
+The existing LLM summarizer consumes the returned titles, URLs, and excerpts.
+Search requests have a ten-second deadline. Service errors, including free-tier
+limits, are reported as tool errors; this selection does not fall back to the
+keyed providers. Existing semantic caching still applies.
+
+Leave `SEARCH_PROVIDER` unset or blank to retain the existing Tavily-first,
+Brave-second fallback chain, configured with `TAVILY_API_KEY` and `BRAVE_API_KEY`.
 
 ## Tool Schema Format
 
